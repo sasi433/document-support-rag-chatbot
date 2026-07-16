@@ -39,6 +39,14 @@ Copy-Item .env.example .env
 
 The app uses the default settings when `.env` is absent. If you create `.env`, keep it local and do not commit it because environment files may contain secrets in the future.
 
+Available settings:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `APP_NAME` | `document-support-rag-chatbot` | FastAPI application name |
+| `APP_ENV` | `local` | Current application environment |
+| `LOG_LEVEL` | `INFO` | Minimum console logging level |
+
 ## Run the app
 
 ```powershell
