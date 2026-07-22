@@ -4,6 +4,8 @@ import pytest
 
 from app.services.document_loader import load_document
 
+FIXTURES_DIR = Path(__file__).parent / "fixtures"
+
 
 @pytest.mark.parametrize(
     ("extension", "content"),
@@ -21,6 +23,15 @@ def test_load_document_reads_text_files(
     document.write_text(content, encoding="utf-8")
 
     assert load_document(document) == content
+
+
+def test_load_document_extracts_pdf_text() -> None:
+    document = FIXTURES_DIR / "support_document.pdf"
+
+    assert load_document(document) == (
+        "Northstar PDF support guide.\n\n"
+        "Second page troubleshooting steps."
+    )
 
 
 def test_load_document_rejects_unsupported_files(tmp_path: Path) -> None:
