@@ -46,6 +46,7 @@ Available settings:
 | `APP_NAME` | `document-support-rag-chatbot` | FastAPI application name |
 | `APP_ENV` | `local` | Current application environment |
 | `LOG_LEVEL` | `INFO` | Minimum console logging level |
+| `UPLOAD_DIR` | `data/uploads` | Local document upload directory |
 
 ## Run the app
 

@@ -12,6 +12,10 @@ venv/
 # Local environment settings
 .env
 
+# Uploaded documents
+data/uploads/*
+!data/uploads/.gitkeep
+
 # Test and tool caches
 .pytest_cache/
 .mypy_cache/
