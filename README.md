@@ -47,6 +47,8 @@ Available settings:
 | `APP_ENV` | `local` | Current application environment |
 | `LOG_LEVEL` | `INFO` | Minimum console logging level |
 | `UPLOAD_DIR` | `data/uploads` | Local document upload directory |
+| `OPENAI_API_KEY` | Not set | OpenAI API key used to create embeddings |
+| `OPENAI_EMBEDDING_MODEL` | `text-embedding-3-small` | OpenAI model used to create embeddings |
 
 ## Run the app
 
