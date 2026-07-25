@@ -49,6 +49,10 @@ Available settings:
 | `UPLOAD_DIR` | `data/uploads` | Local document upload directory |
 | `OPENAI_API_KEY` | Not set | OpenAI API key used to create embeddings |
 | `OPENAI_EMBEDDING_MODEL` | `text-embedding-3-small` | OpenAI model used to create embeddings |
+| `CHROMA_PERSIST_DIR` | `data/chroma` | Local directory for persistent vector data |
+| `CHROMA_COLLECTION_NAME` | `support_documents` | Chroma collection used for document chunks |
+
+Chroma creates its database files inside `data/chroma` by default. These generated files stay local and are not committed to Git.
 
 ## Run the app
 
