@@ -1,6 +1,6 @@
 # Document Support RAG Chatbot
 
-A portfolio project for building a document-support chatbot. Day 1 provides a minimal FastAPI foundation; document ingestion, retrieval, and a user interface will be added in later stages.
+A portfolio project for building a document-support chatbot. The current API accepts support documents, extracts and chunks their text, creates embeddings, and indexes those chunks in a persistent local vector store. Retrieval, answer generation, and a user interface will be added in later stages.
 
 ## Project structure
 
@@ -53,6 +53,8 @@ Available settings:
 | `CHROMA_COLLECTION_NAME` | `support_documents` | Chroma collection used for document chunks |
 
 Chroma creates its database files inside `data/chroma` by default. These generated files stay local and are not committed to Git.
+
+Uploading a supported `.txt`, `.md`, or `.pdf` document requires `OPENAI_API_KEY`. The upload endpoint returns success only after the document has been chunked, embedded, and indexed in Chroma.
 
 ## Run the app
 
