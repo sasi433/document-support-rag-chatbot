@@ -49,6 +49,7 @@ Available settings:
 | `UPLOAD_DIR` | `data/uploads` | Local document upload directory |
 | `OPENAI_API_KEY` | Not set | OpenAI API key used to create embeddings |
 | `OPENAI_EMBEDDING_MODEL` | `text-embedding-3-small` | OpenAI model used to create embeddings |
+| `OPENAI_CHAT_MODEL` | `gpt-5.6-terra` | OpenAI model used to answer questions |
 | `CHROMA_PERSIST_DIR` | `data/chroma` | Local directory for persistent vector data |
 | `CHROMA_COLLECTION_NAME` | `support_documents` | Chroma collection used for document chunks |
 
@@ -73,3 +74,18 @@ You can also test it from PowerShell:
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8000/health
 ```
+
+## Ask a question
+
+After uploading and indexing a document, ask a question with PowerShell:
+
+```powershell
+$body = @{ question = "What is the refund policy?" } | ConvertTo-Json
+Invoke-RestMethod `
+    -Method Post `
+    -Uri http://127.0.0.1:8000/chat/ask `
+    -ContentType "application/json" `
+    -Body $body
+```
+
+The response contains the generated answer and the source filenames used as context.

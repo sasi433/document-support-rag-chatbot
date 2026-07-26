@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     upload_dir: Path = Path("data/uploads")
     openai_api_key: str | None = None
     openai_embedding_model: str = "text-embedding-3-small"
+    openai_chat_model: str = "gpt-5.6-terra"
     chroma_persist_dir: Path = Path("data/chroma")
     chroma_collection_name: str = "support_documents"
 
