@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.services.qa_service import (
     AnswerResult,
-    NoDocumentContextError,
+    FALLBACK_ANSWER,
     QAService,
     QAServiceError,
     get_qa_service,
@@ -63,12 +63,13 @@ def test_ask_question_rejects_empty_question(
     qa_service.answer_question.assert_not_called()
 
 
-def test_ask_question_returns_not_found_without_documents(
+def test_ask_question_returns_fallback_without_documents(
     client: TestClient,
     qa_service: Mock,
 ) -> None:
-    qa_service.answer_question.side_effect = NoDocumentContextError(
-        "No indexed document context is available"
+    qa_service.answer_question.return_value = AnswerResult(
+        answer=FALLBACK_ANSWER,
+        sources=[],
     )
 
     response = client.post(
@@ -76,9 +77,10 @@ def test_ask_question_returns_not_found_without_documents(
         json={"question": "What is the refund policy?"},
     )
 
-    assert response.status_code == 404
+    assert response.status_code == 200
     assert response.json() == {
-        "detail": "No indexed document context is available"
+        "answer": FALLBACK_ANSWER,
+        "sources": [],
     }
 
 

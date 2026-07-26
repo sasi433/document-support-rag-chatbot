@@ -6,7 +6,7 @@ from openai import OpenAIError
 
 from app.services.embeddings import EmbeddingService, EmbeddingServiceError
 from app.services.qa_service import (
-    NoDocumentContextError,
+    FALLBACK_ANSWER,
     QAService,
     QAServiceError,
 )
@@ -70,25 +70,50 @@ def test_answer_question_uses_retrieved_context() -> None:
     assert "Refunds are available within 30 days." in request["input"]
     assert "Contact support with the invoice number." in request["input"]
     assert "only the provided document context" in request["instructions"]
+    assert FALLBACK_ANSWER in request["instructions"]
 
 
-def test_answer_question_requires_document_context() -> None:
+def test_answer_question_returns_fallback_without_document_context() -> None:
     embedding_service = Mock(spec=EmbeddingService)
     vector_store = Mock(spec=VectorStore)
     vector_store.count.return_value = 0
     client = Mock()
 
-    with pytest.raises(
-        NoDocumentContextError,
-        match="No indexed document context is available",
-    ):
-        make_service(embedding_service, vector_store, client).answer_question(
-            "What is the refund policy?"
-        )
+    result = make_service(embedding_service, vector_store, client).answer_question(
+        "What is the refund policy?"
+    )
 
+    assert result.answer == FALLBACK_ANSWER
+    assert result.sources == []
     embedding_service.embed_text.assert_not_called()
     vector_store.search.assert_not_called()
     client.responses.create.assert_not_called()
+
+
+def test_answer_question_returns_fallback_without_sources() -> None:
+    embedding_service = Mock(spec=EmbeddingService)
+    embedding_service.embed_text.return_value = [0.1, 0.2]
+    vector_store = Mock(spec=VectorStore)
+    vector_store.count.return_value = 1
+    vector_store.search.return_value = [
+        VectorSearchResult(
+            record_id="company.txt:0",
+            document="The office opens at 9 AM.",
+            metadata={"source": "company.txt", "chunk_index": 0},
+            distance=0.5,
+        )
+    ]
+    client = Mock()
+    client.responses.create.return_value = SimpleNamespace(
+        output_text="I DON'T KNOW BASED ON THE PROVIDED DOCUMENTS"
+    )
+
+    result = make_service(embedding_service, vector_store, client).answer_question(
+        "What is the CEO's personal phone number?"
+    )
+
+    assert result.answer == FALLBACK_ANSWER
+    assert result.sources == []
 
 
 def test_answer_question_wraps_embedding_errors() -> None:
