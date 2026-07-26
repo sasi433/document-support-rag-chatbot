@@ -17,9 +17,21 @@ These questions validate the fictional Northstar Support Systems documents. Each
 | What should I check first when a deployment fails? | `deployment_troubleshooting.md` | Check process state, the first meaningful log error, configuration, `/health`, and differences from the last working release. |
 | How do I roll back a failed Kubernetes deployment? | `deployment_troubleshooting.md` | Run `kubectl rollout undo deployment/<deployment-name>`, monitor the rollout, then verify `/health` and a customer workflow. |
 
+## Fallback questions
+
+These questions are intentionally not answered by the sample documents. Each should return `I don't know based on the provided documents.` with an empty `sources` list.
+
+| Unsupported question | Why it should fall back |
+| --- | --- |
+| What is the CEO's personal phone number? | No personal contact information is present. |
+| What is the office Wi-Fi password? | No credentials are present. |
+| What was the company's revenue last year? | No financial performance data is present. |
+
 ## Manual validation checklist
 
 - Confirm every expected source file exists under `sample_docs/`.
 - Confirm each expected answer is explicitly present in its source.
 - Confirm names, schedules, time limits, and contact addresses are consistent.
 - Confirm all people, products, organizations, and contact addresses are fictional.
+- Confirm supported questions return answers with the expected source.
+- Confirm fallback questions return the exact fallback text with no sources.
