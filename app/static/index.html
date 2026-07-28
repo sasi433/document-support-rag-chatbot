@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Upload support documents and ask questions grounded in their content."
+    >
+    <title>Document Support Chat</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Document Support Chat home">
+        <span class="brand-mark" aria-hidden="true">D</span>
+        <span>Document Support Chat</span>
+      </a>
+      <span class="status-badge">
+        <span class="status-dot" aria-hidden="true"></span>
+        Local demo
+      </span>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="page-title">
+        <p class="eyebrow">Grounded answers from your files</p>
+        <h1 id="page-title">Ask your support documents.</h1>
+        <p class="hero-copy">
+          Upload a text, Markdown, or PDF document, then ask a question about
+          its contents.
+        </p>
+      </section>
+
+      <div class="workspace">
+        <section class="card upload-card" aria-labelledby="upload-title">
+          <div class="step-number" aria-hidden="true">1</div>
+          <div class="card-heading">
+            <p class="section-label">Add knowledge</p>
+            <h2 id="upload-title">Upload a document</h2>
+            <p>Supported formats: TXT, Markdown, and PDF.</p>
+          </div>
+
+          <form id="document-form">
+            <label class="file-picker" for="document-file">
+              <input
+                id="document-file"
+                name="file"
+                type="file"
+                accept=".txt,.md,.pdf,text/plain,text/markdown,application/pdf"
+                required
+              >
+              <span class="file-icon" aria-hidden="true">&#8593;</span>
+              <span>
+                <strong id="file-label">Choose a document</strong>
+                <small>Maximum size depends on your local server setup</small>
+              </span>
+            </label>
+            <button id="upload-button" type="submit">Upload and index</button>
+          </form>
+
+          <p id="upload-status" class="form-status" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="card chat-card" aria-labelledby="chat-title">
+          <div class="step-number" aria-hidden="true">2</div>
+          <div class="card-heading">
+            <p class="section-label">Explore the content</p>
+            <h2 id="chat-title">Ask a question</h2>
+            <p>Answers are limited to information found in indexed documents.</p>
+          </div>
+
+          <form id="chat-form">
+            <label for="question">Your question</label>
+            <textarea
+              id="question"
+              name="question"
+              rows="4"
+              placeholder="For example: What is the refund policy?"
+              required
+            ></textarea>
+            <button id="ask-button" type="submit">Ask documents</button>
+          </form>
+
+          <p id="chat-status" class="form-status" role="status" aria-live="polite"></p>
+
+          <section id="answer-panel" class="answer-panel" aria-labelledby="answer-title" hidden>
+            <p class="answer-label" id="answer-title">Answer</p>
+            <p id="answer-text"></p>
+          </section>
+        </section>
+      </div>
+    </main>
+
+    <footer>
+      <p>Built with FastAPI and document-grounded retrieval.</p>
+    </footer>
+  </body>
+</html>
