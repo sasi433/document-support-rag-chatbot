@@ -10,6 +10,8 @@ const askButton = document.querySelector("#ask-button");
 const chatStatus = document.querySelector("#chat-status");
 const answerPanel = document.querySelector("#answer-panel");
 const answerText = document.querySelector("#answer-text");
+const sourcesPanel = document.querySelector("#sources-panel");
+const sourcesList = document.querySelector("#sources-list");
 
 function setStatus(element, message, type = "") {
   element.textContent = message;
@@ -33,6 +35,39 @@ async function getErrorMessage(response) {
   }
 
   return `Request failed with status ${response.status}.`;
+}
+
+function renderSources(sources) {
+  sourcesList.replaceChildren();
+
+  if (!Array.isArray(sources) || sources.length === 0) {
+    sourcesPanel.hidden = true;
+    return;
+  }
+
+  for (const source of sources) {
+    const item = document.createElement("li");
+    item.className = "source-item";
+
+    const metadata = document.createElement("div");
+    metadata.className = "source-metadata";
+
+    const filename = document.createElement("strong");
+    filename.textContent = source.filename;
+
+    const chunk = document.createElement("span");
+    chunk.textContent = `Chunk ${source.chunk_index}`;
+
+    const snippet = document.createElement("p");
+    snippet.className = "source-snippet";
+    snippet.textContent = source.snippet;
+
+    metadata.append(filename, chunk);
+    item.append(metadata, snippet);
+    sourcesList.append(item);
+  }
+
+  sourcesPanel.hidden = false;
 }
 
 fileInput.addEventListener("change", () => {
@@ -90,6 +125,7 @@ chatForm.addEventListener("submit", async (event) => {
   setButtonBusy(askButton, true, "Thinking...", "Ask documents");
   setStatus(chatStatus, "Searching indexed documents...");
   answerPanel.hidden = true;
+  renderSources([]);
 
   try {
     const response = await fetch("/chat/ask", {
@@ -104,6 +140,7 @@ chatForm.addEventListener("submit", async (event) => {
 
     const data = await response.json();
     answerText.textContent = data.answer;
+    renderSources(data.sources);
     answerPanel.hidden = false;
     setStatus(chatStatus, "");
   } catch (error) {

@@ -5,6 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.schemas.chat import SourceReference
 from app.services.qa_service import (
     AnswerResult,
     FALLBACK_ANSWER,
@@ -19,7 +20,13 @@ def qa_service() -> Iterator[Mock]:
     service = Mock(spec=QAService)
     service.answer_question.return_value = AnswerResult(
         answer="Refunds are available within 30 days.",
-        sources=["billing.txt"],
+        sources=[
+            SourceReference(
+                filename="billing.txt",
+                chunk_index=0,
+                snippet="Refunds are available within 30 days.",
+            )
+        ],
     )
     app.dependency_overrides[get_qa_service] = lambda: service
 
@@ -46,7 +53,13 @@ def test_ask_question_returns_grounded_answer(
     assert response.status_code == 200
     assert response.json() == {
         "answer": "Refunds are available within 30 days.",
-        "sources": ["billing.txt"],
+        "sources": [
+            {
+                "filename": "billing.txt",
+                "chunk_index": 0,
+                "snippet": "Refunds are available within 30 days.",
+            }
+        ],
     }
     qa_service.answer_question.assert_called_once_with(
         "What is the refund policy?"

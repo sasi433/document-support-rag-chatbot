@@ -2,6 +2,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 
+from app.schemas.chat import SourceReference
 from app.services.embeddings import EmbeddingService
 from app.services.qa_service import FALLBACK_ANSWER, QAService
 from app.services.vector_store import VectorStore
@@ -77,4 +78,10 @@ def test_supported_question_returns_answer_and_source(tmp_path: Path) -> None:
     assert result.answer == (
         "Refund requests must be submitted within 14 calendar days."
     )
-    assert result.sources == ["company_faq.md"]
+    assert result.sources == [
+        SourceReference(
+            filename="company_faq.md",
+            chunk_index=0,
+            snippet="Refund requests must be submitted within 14 calendar days.",
+        )
+    ]

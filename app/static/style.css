@@ -330,6 +330,55 @@ button:disabled {
   white-space: pre-wrap;
 }
 
+.sources-panel {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #d8e8e3;
+}
+
+.sources-panel[hidden] {
+  display: none;
+}
+
+.sources-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.source-item {
+  padding: 12px 14px;
+  border: 1px solid #d8e8e3;
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.source-metadata {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+}
+
+.source-metadata strong {
+  overflow-wrap: anywhere;
+}
+
+.source-metadata span {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.source-snippet {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
 footer {
   width: min(1120px, calc(100% - 40px));
   margin: 0 auto;

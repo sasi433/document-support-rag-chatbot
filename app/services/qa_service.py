@@ -4,10 +4,12 @@ from functools import lru_cache
 from openai import OpenAI, OpenAIError
 
 from app.core.config import get_settings
+from app.schemas.chat import SourceReference
 from app.services.embeddings import EmbeddingService, EmbeddingServiceError
 from app.services.vector_store import VectorSearchResult, VectorStore
 
 DEFAULT_RETRIEVAL_LIMIT = 3
+MAX_SOURCE_SNIPPET_LENGTH = 240
 FALLBACK_ANSWER = "I don't know based on the provided documents."
 
 ANSWER_INSTRUCTIONS = (
@@ -26,7 +28,7 @@ class QAServiceError(RuntimeError):
 @dataclass(frozen=True)
 class AnswerResult:
     answer: str
-    sources: list[str]
+    sources: list[SourceReference]
 
 
 class QAService:
@@ -87,13 +89,7 @@ class QAService:
         if _is_fallback_answer(answer):
             return AnswerResult(answer=FALLBACK_ANSWER, sources=[])
 
-        sources = list(
-            dict.fromkeys(
-                str(result.metadata["source"])
-                for result in results
-                if "source" in result.metadata
-            )
-        )
+        sources = _build_source_references(results)
         return AnswerResult(answer=answer, sources=sources)
 
 
@@ -116,6 +112,36 @@ def _is_fallback_answer(answer: str) -> bool:
     normalized_answer = answer.strip().casefold().rstrip(".")
     normalized_fallback = FALLBACK_ANSWER.casefold().rstrip(".")
     return normalized_answer == normalized_fallback
+
+
+def _build_source_references(
+    results: list[VectorSearchResult],
+) -> list[SourceReference]:
+    sources = []
+
+    for result in results:
+        filename = result.metadata.get("source")
+        chunk_index = result.metadata.get("chunk_index")
+        if not isinstance(filename, str) or not isinstance(chunk_index, int):
+            continue
+
+        sources.append(
+            SourceReference(
+                filename=filename,
+                chunk_index=chunk_index,
+                snippet=_build_source_snippet(result.document),
+            )
+        )
+
+    return sources
+
+
+def _build_source_snippet(document: str) -> str:
+    snippet = " ".join(document.split())
+    if len(snippet) <= MAX_SOURCE_SNIPPET_LENGTH:
+        return snippet
+
+    return f"{snippet[: MAX_SOURCE_SNIPPET_LENGTH - 3].rstrip()}..."
 
 
 @lru_cache

@@ -4,6 +4,7 @@ from unittest.mock import Mock
 import pytest
 from openai import OpenAIError
 
+from app.schemas.chat import SourceReference
 from app.services.embeddings import EmbeddingService, EmbeddingServiceError
 from app.services.qa_service import (
     FALLBACK_ANSWER,
@@ -58,7 +59,18 @@ def test_answer_question_uses_retrieved_context() -> None:
     )
 
     assert result.answer == "Refunds are available within 30 days."
-    assert result.sources == ["billing.txt"]
+    assert result.sources == [
+        SourceReference(
+            filename="billing.txt",
+            chunk_index=0,
+            snippet="Refunds are available within 30 days.",
+        ),
+        SourceReference(
+            filename="billing.txt",
+            chunk_index=1,
+            snippet="Contact support with the invoice number.",
+        ),
+    ]
     embedding_service.embed_text.assert_called_once_with(
         "What is the refund policy?"
     )
@@ -71,6 +83,38 @@ def test_answer_question_uses_retrieved_context() -> None:
     assert "Contact support with the invoice number." in request["input"]
     assert "only the provided document context" in request["instructions"]
     assert FALLBACK_ANSWER in request["instructions"]
+
+
+def test_answer_question_limits_source_snippet_length() -> None:
+    embedding_service = Mock(spec=EmbeddingService)
+    embedding_service.embed_text.return_value = [0.1, 0.2]
+
+    vector_store = Mock(spec=VectorStore)
+    vector_store.count.return_value = 1
+    vector_store.search.return_value = [
+        VectorSearchResult(
+            record_id="manual.md:4",
+            document=("Deployment details\n" + "important step " * 30),
+            metadata={"source": "manual.md", "chunk_index": 4},
+            distance=0.1,
+        )
+    ]
+
+    client = Mock()
+    client.responses.create.return_value = SimpleNamespace(
+        output_text="Follow the documented deployment steps."
+    )
+
+    result = make_service(embedding_service, vector_store, client).answer_question(
+        "How do I deploy?"
+    )
+
+    source = result.sources[0]
+    assert source.filename == "manual.md"
+    assert source.chunk_index == 4
+    assert len(source.snippet) == 240
+    assert "\n" not in source.snippet
+    assert source.snippet.endswith("...")
 
 
 def test_answer_question_returns_fallback_without_document_context() -> None:

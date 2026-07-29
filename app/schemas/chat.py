@@ -13,6 +13,12 @@ class ChatRequest(BaseModel):
         return question
 
 
+class SourceReference(BaseModel):
+    filename: str
+    chunk_index: int
+    snippet: str
+
+
 class ChatResponse(BaseModel):
     answer: str
-    sources: list[str]
+    sources: list[SourceReference]

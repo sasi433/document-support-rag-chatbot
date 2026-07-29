@@ -13,6 +13,8 @@ def test_chat_interface_is_served_at_root() -> None:
     assert response.headers["content-type"].startswith("text/html")
     assert 'id="document-form"' in response.text
     assert 'id="chat-form"' in response.text
+    assert 'id="sources-panel"' in response.text
+    assert 'id="sources-list"' in response.text
 
 
 @pytest.mark.parametrize(
