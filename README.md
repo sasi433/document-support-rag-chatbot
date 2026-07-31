@@ -98,7 +98,25 @@ docker run --rm -p 8000:8000 --env-file .env document-support-rag-chatbot
 
 Open the interface at <http://127.0.0.1:8000/> or test the health endpoint at <http://127.0.0.1:8000/health>. Press `Ctrl+C` to stop the container.
 
-Files uploaded with `docker run --rm` are removed with the container. Persistent local data will be configured with Docker Compose in the next project step.
+Files uploaded with `docker run --rm` are removed with the container.
+
+### Run with Docker Compose
+
+Docker Compose builds the application and stores uploaded documents and Chroma data in the local `data/` directory. It uses `.env` when the file is present, but the interface and health endpoint can run without it.
+
+Start the application:
+
+```powershell
+docker compose up --build
+```
+
+Open <http://127.0.0.1:8000/>. To stop and remove the container and network, press `Ctrl+C` and run:
+
+```powershell
+docker compose down
+```
+
+The `data/uploads` and `data/chroma` directories remain on the host after the container stops. Keep `.env` local and do not commit it.
 
 ## Ask a question
 
