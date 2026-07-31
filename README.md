@@ -75,6 +75,31 @@ You can also test it from PowerShell:
 Invoke-RestMethod http://127.0.0.1:8000/health
 ```
 
+## Run with Docker
+
+Make sure Docker Desktop is installed and running. Build the application image from the project root:
+
+```powershell
+docker build -t document-support-rag-chatbot .
+```
+
+Run the container without an environment file to test the interface and health endpoint:
+
+```powershell
+docker run --rm -p 8000:8000 document-support-rag-chatbot
+```
+
+To upload documents and ask questions, create a local `.env` file and set `OPENAI_API_KEY`. Then pass the file to the container:
+
+```powershell
+Copy-Item .env.example .env
+docker run --rm -p 8000:8000 --env-file .env document-support-rag-chatbot
+```
+
+Open the interface at <http://127.0.0.1:8000/> or test the health endpoint at <http://127.0.0.1:8000/health>. Press `Ctrl+C` to stop the container.
+
+Files uploaded with `docker run --rm` are removed with the container. Persistent local data will be configured with Docker Compose in the next project step.
+
 ## Ask a question
 
 After uploading and indexing a document, ask a question with PowerShell:
