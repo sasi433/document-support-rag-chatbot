@@ -7,8 +7,8 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.schemas.chat import SourceReference
 from app.services.qa_service import (
-    AnswerResult,
     FALLBACK_ANSWER,
+    AnswerResult,
     QAService,
     QAServiceError,
     get_qa_service,
