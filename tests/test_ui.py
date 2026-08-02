@@ -18,14 +18,21 @@ def test_chat_interface_is_served_at_root() -> None:
 
 
 @pytest.mark.parametrize(
-    ("path", "content_type"),
+    ("path", "content_types"),
     [
-        ("/static/app.js", "application/javascript"),
-        ("/static/style.css", "text/css"),
+        (
+            "/static/app.js",
+            ("application/javascript", "text/javascript"),
+        ),
+        ("/static/style.css", ("text/css",)),
     ],
 )
-def test_static_assets_are_served(path: str, content_type: str) -> None:
+def test_static_assets_are_served(
+    path: str,
+    content_types: tuple[str, ...],
+) -> None:
     response = client.get(path)
 
     assert response.status_code == 200
-    assert response.headers["content-type"].startswith(content_type)
+    media_type = response.headers["content-type"].split(";", maxsplit=1)[0]
+    assert media_type in content_types
