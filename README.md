@@ -7,6 +7,8 @@ The application includes a FastAPI backend, a lightweight browser interface, str
 ## Features
 
 - Upload `.txt`, `.md`, and `.pdf` documents.
+- View indexed documents and their chunk counts.
+- Remove uploaded documents and their indexed content.
 - Extract and split document text into overlapping chunks.
 - Generate embeddings with OpenAI.
 - Store and search embeddings with persistent ChromaDB.
@@ -106,10 +108,12 @@ The health endpoint should return:
 
 1. Start the application and open <http://127.0.0.1:8000/>.
 2. Upload one of the files from `sample_docs/`, such as `company_faq.md`.
-3. Ask: `What is the refund policy?`
-4. Confirm the answer includes source cards with the filename, chunk index, and context snippet.
-5. Ask: `What is the CEO's personal phone number?`
-6. Confirm the exact fallback message appears without sources.
+3. Confirm it appears under **Indexed documents** with its chunk count.
+4. Ask: `What is the refund policy?`
+5. Confirm the answer includes source cards with the filename, chunk index, and context snippet.
+6. Ask: `What is the CEO's personal phone number?`
+7. Confirm the exact fallback message appears without sources.
+8. Delete the uploaded document and confirm it disappears from the indexed-document list.
 
 The sample documents describe a fictional organization and contain no real credentials or personal data. More supported and fallback examples are available in [docs/demo_questions.md](docs/demo_questions.md).
 
@@ -118,7 +122,9 @@ The sample documents describe a fictional organization and contain no real crede
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
 | `GET` | `/health` | Confirm the application is running |
+| `GET` | `/documents` | List indexed documents and chunk counts |
 | `POST` | `/documents/upload` | Save, chunk, embed, and index a document |
+| `DELETE` | `/documents/{filename}` | Remove a document and its indexed chunks |
 | `POST` | `/chat/ask` | Ask a question using indexed documents |
 
 ### Upload a document
@@ -139,6 +145,24 @@ Successful response:
 ```
 
 Uploading another document with the same filename is rejected instead of overwriting the existing file.
+
+### List indexed documents
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/documents
+```
+
+Each document includes its filename and the number of chunks stored in ChromaDB.
+
+### Delete a document
+
+```powershell
+Invoke-RestMethod `
+  -Method Delete `
+  -Uri http://127.0.0.1:8000/documents/company_faq.md
+```
+
+Deletion removes both the uploaded file and all of its indexed chunks.
 
 ### Ask a question
 

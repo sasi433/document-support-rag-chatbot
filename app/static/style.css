@@ -313,6 +313,96 @@ button:disabled {
   background: var(--error-soft);
 }
 
+.document-library {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+.document-library-heading {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.document-library-heading .section-label {
+  margin-bottom: 4px;
+}
+
+.document-library-heading h3 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: -0.015em;
+}
+
+.secondary-button,
+.delete-button {
+  min-height: 36px;
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  color: var(--accent);
+  background: var(--surface);
+  font-size: 0.78rem;
+}
+
+.secondary-button:hover:not(:disabled) {
+  color: var(--surface);
+  background: var(--accent);
+}
+
+.documents-empty {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.documents-list {
+  display: grid;
+  gap: 9px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.document-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fafbfc;
+}
+
+.document-details {
+  display: grid;
+  min-width: 0;
+}
+
+.document-details strong {
+  overflow: hidden;
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.document-details span {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.delete-button {
+  flex: 0 0 auto;
+  color: var(--error);
+}
+
+.delete-button:hover:not(:disabled) {
+  color: #ffffff;
+  background: var(--error);
+}
+
 .answer-panel {
   margin-top: 14px;
   padding: 20px;

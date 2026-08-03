@@ -61,6 +61,29 @@
           </form>
 
           <p id="upload-status" class="form-status" role="status" aria-live="polite"></p>
+
+          <section class="document-library" aria-labelledby="documents-title">
+            <div class="document-library-heading">
+              <div>
+                <p class="section-label">Available knowledge</p>
+                <h3 id="documents-title">Indexed documents</h3>
+              </div>
+              <button id="refresh-documents" class="secondary-button" type="button">
+                Refresh
+              </button>
+            </div>
+
+            <p
+              id="documents-status"
+              class="form-status"
+              role="status"
+              aria-live="polite"
+            ></p>
+            <p id="documents-empty" class="documents-empty" hidden>
+              No documents are indexed yet.
+            </p>
+            <ul id="documents-list" class="documents-list"></ul>
+          </section>
         </section>
 
         <section class="card chat-card" aria-labelledby="chat-title">
