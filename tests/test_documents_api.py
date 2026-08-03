@@ -7,6 +7,12 @@ from fastapi.testclient import TestClient
 
 from app.core.config import get_settings
 from app.main import app
+from app.services.document_management import (
+    DocumentManagementService,
+    DocumentNotFoundError,
+    IndexedDocument,
+    get_document_management_service,
+)
 from app.services.embeddings import EmbeddingServiceError
 from app.services.ingestion_service import (
     DocumentIngestionError,
@@ -36,9 +42,93 @@ def ingestion_service() -> Iterator[Mock]:
 
 
 @pytest.fixture
-def client(upload_dir: Path, ingestion_service: Mock) -> Iterator[TestClient]:
+def document_management_service() -> Iterator[Mock]:
+    service = Mock(spec=DocumentManagementService)
+    service.list_documents.return_value = []
+    app.dependency_overrides[get_document_management_service] = lambda: service
+
+    yield service
+
+    app.dependency_overrides.pop(get_document_management_service, None)
+
+
+@pytest.fixture
+def client(
+    upload_dir: Path,
+    ingestion_service: Mock,
+    document_management_service: Mock,
+) -> Iterator[TestClient]:
     with TestClient(app) as test_client:
         yield test_client
+
+
+def test_list_documents_returns_indexed_documents(
+    client: TestClient,
+    document_management_service: Mock,
+) -> None:
+    document_management_service.list_documents.return_value = [
+        IndexedDocument(filename="billing.md", chunk_count=1),
+        IndexedDocument(filename="manual.txt", chunk_count=2),
+    ]
+
+    response = client.get("/documents")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "documents": [
+            {"filename": "billing.md", "chunk_count": 1},
+            {"filename": "manual.txt", "chunk_count": 2},
+        ]
+    }
+
+
+def test_list_documents_returns_empty_list(
+    client: TestClient,
+    document_management_service: Mock,
+) -> None:
+    response = client.get("/documents")
+
+    assert response.status_code == 200
+    assert response.json() == {"documents": []}
+
+
+def test_delete_document_returns_deleted_status(
+    client: TestClient,
+    document_management_service: Mock,
+) -> None:
+    response = client.delete("/documents/manual.txt")
+
+    assert response.status_code == 200
+    assert response.json() == {"filename": "manual.txt", "status": "deleted"}
+    document_management_service.delete_document.assert_called_once_with("manual.txt")
+
+
+def test_delete_document_returns_not_found(
+    client: TestClient,
+    document_management_service: Mock,
+) -> None:
+    document_management_service.delete_document.side_effect = DocumentNotFoundError(
+        "Document not found: missing.txt"
+    )
+
+    response = client.delete("/documents/missing.txt")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Document not found: missing.txt"}
+
+
+def test_delete_document_rejects_invalid_filename(
+    client: TestClient,
+    document_management_service: Mock,
+) -> None:
+    document_management_service.delete_document.side_effect = ValueError(
+        "Unsupported document type: .csv"
+    )
+
+    response = client.delete("/documents/support.csv")
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Unsupported document type: .csv"}
 
 
 @pytest.mark.parametrize(

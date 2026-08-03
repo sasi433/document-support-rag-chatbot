@@ -58,6 +58,47 @@ def test_vector_store_returns_no_results_for_empty_collection(tmp_path) -> None:
     assert store.search([1.0, 0.0]) == []
 
 
+def test_vector_store_counts_chunks_by_source(tmp_path) -> None:
+    store = VectorStore(tmp_path, "test_documents")
+    store.add_documents(
+        ids=["manual-0", "manual-1", "billing-0"],
+        documents=["Restart.", "Update.", "Pay monthly."],
+        embeddings=[[1.0, 0.0], [0.9, 0.1], [0.0, 1.0]],
+        metadatas=[
+            {"source": "manual.txt", "chunk_index": 0},
+            {"source": "manual.txt", "chunk_index": 1},
+            {"source": "billing.txt", "chunk_index": 0},
+        ],
+    )
+
+    assert store.source_counts() == {"manual.txt": 2, "billing.txt": 1}
+
+
+def test_vector_store_deletes_only_matching_source(tmp_path) -> None:
+    store = VectorStore(tmp_path, "test_documents")
+    store.add_documents(
+        ids=["manual-0", "manual-1", "billing-0"],
+        documents=["Restart.", "Update.", "Pay monthly."],
+        embeddings=[[1.0, 0.0], [0.9, 0.1], [0.0, 1.0]],
+        metadatas=[
+            {"source": "manual.txt", "chunk_index": 0},
+            {"source": "manual.txt", "chunk_index": 1},
+            {"source": "billing.txt", "chunk_index": 0},
+        ],
+    )
+
+    assert store.delete_source("manual.txt") == 2
+    assert store.source_counts() == {"billing.txt": 1}
+    assert store.delete_source("missing.txt") == 0
+
+
+def test_vector_store_rejects_empty_source_deletion(tmp_path) -> None:
+    store = VectorStore(tmp_path, "test_documents")
+
+    with pytest.raises(ValueError, match="Source cannot be empty"):
+        store.delete_source("  ")
+
+
 def test_vector_store_rejects_misaligned_documents(tmp_path) -> None:
     store = VectorStore(tmp_path, "test_documents")
 

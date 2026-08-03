@@ -12,7 +12,7 @@ async def save_upload_file(upload_file: UploadFile, upload_dir: Path) -> Path:
     upload_complete = False
 
     try:
-        filename = _validate_filename(upload_file.filename)
+        filename = validate_document_filename(upload_file.filename)
         upload_path = Path(upload_dir)
         upload_path.mkdir(parents=True, exist_ok=True)
         destination = upload_path / filename
@@ -32,7 +32,7 @@ async def save_upload_file(upload_file: UploadFile, upload_dir: Path) -> Path:
             destination.unlink(missing_ok=True)
 
 
-def _validate_filename(filename: str | None) -> str:
+def validate_document_filename(filename: str | None) -> str:
     if not filename or not filename.strip():
         raise ValueError("Document filename cannot be empty")
 

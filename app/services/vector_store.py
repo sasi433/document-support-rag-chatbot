@@ -101,3 +101,30 @@ class VectorStore:
 
     def count(self) -> int:
         return self._collection.count()
+
+    def source_counts(self) -> dict[str, int]:
+        response = self._collection.get(include=["metadatas"])
+        source_counts: dict[str, int] = {}
+
+        for metadata in response["metadatas"] or []:
+            source = metadata.get("source") if metadata else None
+            if isinstance(source, str) and source:
+                source_counts[source] = source_counts.get(source, 0) + 1
+
+        return source_counts
+
+    def delete_source(self, source: str) -> int:
+        if not source.strip():
+            raise ValueError("Source cannot be empty")
+
+        response = self._collection.get(
+            where={"source": source},
+            include=[],
+        )
+        record_ids = response["ids"]
+
+        if not record_ids:
+            return 0
+
+        self._collection.delete(ids=record_ids)
+        return len(record_ids)

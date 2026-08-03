@@ -3,7 +3,17 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from app.core.config import get_settings
-from app.schemas.document import DocumentUploadResponse
+from app.schemas.document import (
+    DocumentDeleteResponse,
+    DocumentListResponse,
+    DocumentSummary,
+    DocumentUploadResponse,
+)
+from app.services.document_management import (
+    DocumentManagementService,
+    DocumentNotFoundError,
+    get_document_management_service,
+)
 from app.services.embeddings import EmbeddingServiceError
 from app.services.ingestion_service import (
     DocumentIngestionError,
@@ -13,6 +23,24 @@ from app.services.ingestion_service import (
 from app.utils.file_utils import save_upload_file
 
 router = APIRouter(prefix="/documents", tags=["documents"])
+
+
+@router.get("", response_model=DocumentListResponse)
+def list_documents(
+    document_service: DocumentManagementService = Depends(
+        get_document_management_service
+    ),
+) -> DocumentListResponse:
+    documents = document_service.list_documents()
+    return DocumentListResponse(
+        documents=[
+            DocumentSummary(
+                filename=document.filename,
+                chunk_count=document.chunk_count,
+            )
+            for document in documents
+        ]
+    )
 
 
 @router.post(
@@ -50,3 +78,20 @@ async def upload_document(
         raise
 
     return DocumentUploadResponse(filename=saved_path.name, status="uploaded")
+
+
+@router.delete("/{filename}", response_model=DocumentDeleteResponse)
+def delete_document(
+    filename: str,
+    document_service: DocumentManagementService = Depends(
+        get_document_management_service
+    ),
+) -> DocumentDeleteResponse:
+    try:
+        document_service.delete_document(filename)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except DocumentNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    return DocumentDeleteResponse(filename=filename, status="deleted")
