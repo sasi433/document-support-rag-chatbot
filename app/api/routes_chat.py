@@ -16,7 +16,10 @@ def ask_question(
     qa_service: QAService = Depends(get_qa_service),
 ) -> ChatResponse:
     try:
-        result = qa_service.answer_question(request.question)
+        result = qa_service.answer_question(
+            request.question,
+            history=request.history,
+        )
     except QAServiceError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 

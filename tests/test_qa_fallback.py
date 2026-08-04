@@ -56,8 +56,10 @@ def test_unsupported_question_returns_fallback_without_sources(
     assert result.sources == []
 
     request = client.responses.create.call_args.kwargs
-    assert "What is the CEO's personal phone number?" in request["input"]
-    assert "Standard support is available" in request["input"]
+    assert "What is the CEO's personal phone number?" in request["input"][-1][
+        "content"
+    ]
+    assert "Standard support is available" in request["input"][-1]["content"]
 
 
 def test_supported_question_returns_answer_and_source(tmp_path: Path) -> None:

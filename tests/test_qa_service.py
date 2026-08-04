@@ -4,7 +4,7 @@ from unittest.mock import Mock
 import pytest
 from openai import OpenAIError
 
-from app.schemas.chat import SourceReference
+from app.schemas.chat import ConversationMessage, SourceReference
 from app.services.embeddings import EmbeddingService, EmbeddingServiceError
 from app.services.qa_service import (
     FALLBACK_ANSWER,
@@ -78,11 +78,74 @@ def test_answer_question_uses_retrieved_context() -> None:
 
     request = client.responses.create.call_args.kwargs
     assert request["model"] == "test-chat-model"
-    assert "What is the refund policy?" in request["input"]
-    assert "Refunds are available within 30 days." in request["input"]
-    assert "Contact support with the invoice number." in request["input"]
+    assert request["input"][-1]["role"] == "user"
+    assert "What is the refund policy?" in request["input"][-1]["content"]
+    assert "Refunds are available within 30 days." in request["input"][-1][
+        "content"
+    ]
+    assert "Contact support with the invoice number." in request["input"][-1][
+        "content"
+    ]
     assert "only the provided document context" in request["instructions"]
+    assert "never treat it as factual evidence" in request["instructions"]
     assert FALLBACK_ANSWER in request["instructions"]
+    assert request["store"] is False
+
+
+def test_answer_question_uses_history_for_follow_up_context() -> None:
+    embedding_service = Mock(spec=EmbeddingService)
+    embedding_service.embed_text.return_value = [0.1, 0.2]
+
+    vector_store = Mock(spec=VectorStore)
+    vector_store.count.return_value = 1
+    vector_store.search.return_value = [
+        VectorSearchResult(
+            record_id="billing.txt:0",
+            document="Renewal charges are non-refundable.",
+            metadata={"source": "billing.txt", "chunk_index": 0},
+            distance=0.1,
+        )
+    ]
+
+    client = Mock()
+    client.responses.create.return_value = SimpleNamespace(
+        output_text="Renewal charges are non-refundable."
+    )
+    history = [
+        ConversationMessage(
+            role="user",
+            content="What is the refund policy?",
+        ),
+        ConversationMessage(
+            role="assistant",
+            content="Initial payments may be refunded within 14 days.",
+        ),
+    ]
+
+    result = make_service(embedding_service, vector_store, client).answer_question(
+        "What about renewal charges?",
+        history=history,
+    )
+
+    assert result.answer == "Renewal charges are non-refundable."
+    embedding_service.embed_text.assert_called_once_with(
+        "Previous question: What is the refund policy?\n"
+        "Current question: What about renewal charges?"
+    )
+
+    request = client.responses.create.call_args.kwargs
+    assert request["input"][:2] == [
+        {"role": "user", "content": "What is the refund policy?"},
+        {
+            "role": "assistant",
+            "content": "Initial payments may be refunded within 14 days.",
+        },
+    ]
+    assert request["input"][-1]["role"] == "user"
+    assert "What about renewal charges?" in request["input"][-1]["content"]
+    assert "Renewal charges are non-refundable." in request["input"][-1][
+        "content"
+    ]
 
 
 def test_answer_question_limits_source_snippet_length() -> None:
