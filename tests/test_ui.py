@@ -16,8 +16,9 @@ def test_chat_interface_is_served_at_root() -> None:
     assert 'id="documents-empty"' in response.text
     assert 'id="refresh-documents"' in response.text
     assert 'id="chat-form"' in response.text
-    assert 'id="sources-panel"' in response.text
-    assert 'id="sources-list"' in response.text
+    assert 'id="conversation-list"' in response.text
+    assert 'id="conversation-empty"' in response.text
+    assert 'id="clear-conversation"' in response.text
 
 
 @pytest.mark.parametrize(
@@ -50,3 +51,15 @@ def test_browser_interface_supports_document_management() -> None:
     assert "encodeURIComponent(indexedDocument.filename)" in response.text
     assert "window.confirm" in response.text
     assert "await loadDocuments()" in response.text
+
+
+def test_browser_interface_supports_conversation_history() -> None:
+    response = client.get("/static/app.js")
+
+    assert response.status_code == 200
+    assert "const MAX_CONVERSATION_MESSAGES = 6" in response.text
+    assert "conversationHistory.slice(-MAX_CONVERSATION_MESSAGES)" in response.text
+    assert "JSON.stringify({ question, history })" in response.text
+    assert 'appendConversationMessage("user", question)' in response.text
+    assert 'appendConversationMessage("assistant", data.answer' in response.text
+    assert "conversationHistory.length = 0" in response.text

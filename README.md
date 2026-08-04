@@ -13,6 +13,7 @@ The application includes a FastAPI backend, a lightweight browser interface, str
 - Generate embeddings with OpenAI.
 - Store and search embeddings with persistent ChromaDB.
 - Generate answers using only retrieved document context.
+- Ask contextual follow-up questions using recent browser-session history.
 - Return filename, chunk index, and a short snippet for each source.
 - Use an explicit fallback when the documents do not contain an answer.
 - Run through the browser, REST API, Docker, or Docker Compose.
@@ -21,10 +22,10 @@ The application includes a FastAPI backend, a lightweight browser interface, str
 
 ```text
 Document -> Extract text -> Create chunks -> Generate embeddings -> ChromaDB
-Question -> Generate embedding -> Retrieve chunks -> Generate answer -> Show sources
+Question + recent history -> Retrieve chunks -> Generate answer -> Show sources
 ```
 
-For each question, the application retrieves up to three relevant chunks. The answer model is instructed to use only that context. If the context is insufficient, the application returns:
+For each question, the application retrieves up to three relevant chunks. Recent conversation history can clarify follow-up intent, but the answer model is instructed to use document context as its only factual evidence. If the context is insufficient, the application returns:
 
 ```text
 I don't know based on the provided documents.
@@ -111,9 +112,12 @@ The health endpoint should return:
 3. Confirm it appears under **Indexed documents** with its chunk count.
 4. Ask: `What is the refund policy?`
 5. Confirm the answer includes source cards with the filename, chunk index, and context snippet.
-6. Ask: `What is the CEO's personal phone number?`
-7. Confirm the exact fallback message appears without sources.
-8. Delete the uploaded document and confirm it disappears from the indexed-document list.
+6. Ask the follow-up: `What about renewal charges?`
+7. Confirm the answer understands the refund-policy context and remains grounded in the document.
+8. Ask: `What is the CEO's personal phone number?`
+9. Confirm the exact fallback message appears without sources.
+10. Clear the conversation and confirm the transcript is emptied.
+11. Delete the uploaded document and confirm it disappears from the indexed-document list.
 
 The sample documents describe a fictional organization and contain no real credentials or personal data. More supported and fallback examples are available in [docs/demo_questions.md](docs/demo_questions.md).
 
@@ -190,6 +194,26 @@ Response shape:
 }
 ```
 
+Follow-up requests may include up to six recent messages as complete, alternating user/assistant pairs:
+
+```json
+{
+  "question": "What about renewal charges?",
+  "history": [
+    {
+      "role": "user",
+      "content": "What is the refund policy?"
+    },
+    {
+      "role": "assistant",
+      "content": "The first subscription payment may be refunded within 14 days."
+    }
+  ]
+}
+```
+
+Browser conversation history stays in memory for the current page session only. Clearing the conversation or refreshing the page removes it.
+
 ## Configuration
 
 Settings are loaded from environment variables and from `.env` when it is present.
@@ -257,4 +281,4 @@ Both commands should pass before committing changes.
 
 ## Project scope
 
-This repository is a local, single-user portfolio demonstration. It intentionally does not include authentication, multi-user document isolation, background processing, or production deployment infrastructure.
+This repository is a local, single-user portfolio demonstration. It intentionally does not include authentication, multi-user document isolation, persistent conversation storage, background processing, or production deployment infrastructure.

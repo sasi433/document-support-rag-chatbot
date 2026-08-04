@@ -100,6 +100,7 @@
               id="question"
               name="question"
               rows="4"
+              maxlength="2000"
               placeholder="For example: What is the refund policy?"
               required
             ></textarea>
@@ -108,19 +109,29 @@
 
           <p id="chat-status" class="form-status" role="status" aria-live="polite"></p>
 
-          <section id="answer-panel" class="answer-panel" aria-labelledby="answer-title" hidden>
-            <p class="answer-label" id="answer-title">Answer</p>
-            <p id="answer-text"></p>
-
-            <section
-              id="sources-panel"
-              class="sources-panel"
-              aria-labelledby="sources-title"
-              hidden
+          <section class="conversation-panel" aria-labelledby="conversation-title">
+            <div class="conversation-heading">
+              <p class="answer-label" id="conversation-title">Conversation</p>
+              <button
+                id="clear-conversation"
+                class="secondary-button"
+                type="button"
+                disabled
+              >
+                Clear
+              </button>
+            </div>
+            <p id="conversation-empty" class="conversation-empty">
+              Your questions and grounded answers will appear here.
+            </p>
+            <ol
+              id="conversation-list"
+              class="conversation-list"
+              role="log"
+              aria-live="polite"
+              aria-relevant="additions"
             >
-              <p class="answer-label" id="sources-title">Sources</p>
-              <ul id="sources-list" class="sources-list"></ul>
-            </section>
+            </ol>
           </section>
         </section>
       </div>

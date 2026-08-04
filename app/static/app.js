@@ -12,10 +12,12 @@ const chatForm = document.querySelector("#chat-form");
 const questionInput = document.querySelector("#question");
 const askButton = document.querySelector("#ask-button");
 const chatStatus = document.querySelector("#chat-status");
-const answerPanel = document.querySelector("#answer-panel");
-const answerText = document.querySelector("#answer-text");
-const sourcesPanel = document.querySelector("#sources-panel");
-const sourcesList = document.querySelector("#sources-list");
+const clearConversationButton = document.querySelector("#clear-conversation");
+const conversationEmpty = document.querySelector("#conversation-empty");
+const conversationList = document.querySelector("#conversation-list");
+
+const MAX_CONVERSATION_MESSAGES = 6;
+const conversationHistory = [];
 
 function setStatus(element, message, type = "") {
   element.textContent = message;
@@ -41,13 +43,17 @@ async function getErrorMessage(response) {
   return `Request failed with status ${response.status}.`;
 }
 
-function renderSources(sources) {
-  sourcesList.replaceChildren();
+function createSourcesPanel(sources) {
+  const panel = document.createElement("section");
+  panel.className = "sources-panel";
+  panel.setAttribute("aria-label", "Sources for this answer");
 
-  if (!Array.isArray(sources) || sources.length === 0) {
-    sourcesPanel.hidden = true;
-    return;
-  }
+  const label = document.createElement("p");
+  label.className = "answer-label";
+  label.textContent = "Sources";
+
+  const list = document.createElement("ul");
+  list.className = "sources-list";
 
   for (const source of sources) {
     const item = document.createElement("li");
@@ -68,10 +74,57 @@ function renderSources(sources) {
 
     metadata.append(filename, chunk);
     item.append(metadata, snippet);
-    sourcesList.append(item);
+    list.append(item);
   }
 
-  sourcesPanel.hidden = false;
+  panel.append(label, list);
+  return panel;
+}
+
+function appendConversationMessage(role, content, sources = []) {
+  const item = document.createElement("li");
+  item.className = `conversation-message ${role}-message`;
+
+  const roleLabel = document.createElement("p");
+  roleLabel.className = "message-role";
+  roleLabel.textContent = role === "user" ? "You" : "Assistant";
+
+  const messageContent = document.createElement("p");
+  messageContent.className = "message-content";
+  messageContent.textContent = content;
+
+  item.append(roleLabel, messageContent);
+  if (role === "assistant" && Array.isArray(sources) && sources.length > 0) {
+    item.append(createSourcesPanel(sources));
+  }
+
+  conversationList.append(item);
+  conversationEmpty.hidden = true;
+  clearConversationButton.disabled = false;
+  item.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function rememberConversation(question, answer) {
+  conversationHistory.push(
+    { role: "user", content: question },
+    { role: "assistant", content: answer },
+  );
+
+  if (conversationHistory.length > MAX_CONVERSATION_MESSAGES) {
+    conversationHistory.splice(
+      0,
+      conversationHistory.length - MAX_CONVERSATION_MESSAGES,
+    );
+  }
+}
+
+function clearConversation() {
+  conversationHistory.length = 0;
+  conversationList.replaceChildren();
+  conversationEmpty.hidden = false;
+  clearConversationButton.disabled = true;
+  setStatus(chatStatus, "");
+  questionInput.focus();
 }
 
 function renderDocuments(documents) {
@@ -222,15 +275,15 @@ chatForm.addEventListener("submit", async (event) => {
   }
 
   setButtonBusy(askButton, true, "Thinking...", "Ask documents");
+  clearConversationButton.disabled = true;
   setStatus(chatStatus, "Searching indexed documents...");
-  answerPanel.hidden = true;
-  renderSources([]);
+  const history = conversationHistory.slice(-MAX_CONVERSATION_MESSAGES);
 
   try {
     const response = await fetch("/chat/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({ question, history }),
     });
 
     if (!response.ok) {
@@ -238,13 +291,18 @@ chatForm.addEventListener("submit", async (event) => {
     }
 
     const data = await response.json();
-    answerText.textContent = data.answer;
-    renderSources(data.sources);
-    answerPanel.hidden = false;
+    appendConversationMessage("user", question);
+    appendConversationMessage("assistant", data.answer, data.sources);
+    rememberConversation(question, data.answer);
+    questionInput.value = "";
+    questionInput.focus();
     setStatus(chatStatus, "");
   } catch (error) {
     setStatus(chatStatus, error.message, "error");
   } finally {
     setButtonBusy(askButton, false, "Thinking...", "Ask documents");
+    clearConversationButton.disabled = conversationHistory.length === 0;
   }
 });
+
+clearConversationButton.addEventListener("click", clearConversation);

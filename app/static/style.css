@@ -351,6 +351,10 @@ button:disabled {
   background: var(--accent);
 }
 
+.secondary-button:disabled {
+  cursor: not-allowed;
+}
+
 .documents-empty {
   margin: 8px 0 0;
   color: var(--muted);
@@ -403,31 +407,76 @@ button:disabled {
   background: var(--error);
 }
 
-.answer-panel {
+.conversation-panel {
   margin-top: 14px;
   padding: 20px;
-  border-left: 3px solid var(--accent);
-  border-radius: 4px 12px 12px 4px;
+  border: 1px solid #d8e8e3;
+  border-radius: 12px;
   background: #f6fbf9;
 }
 
-.answer-panel[hidden] {
-  display: none;
+.conversation-heading {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.answer-panel p:last-child {
-  margin-bottom: 0;
+.conversation-heading .answer-label {
+  margin: 0;
+}
+
+.conversation-empty {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.conversation-list {
+  display: grid;
+  gap: 14px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.conversation-message {
+  max-width: 92%;
+  padding: 13px 15px;
+  border-radius: 12px;
+}
+
+.user-message {
+  justify-self: end;
+  color: #ffffff;
+  background: var(--accent);
+}
+
+.assistant-message {
+  justify-self: start;
+  border: 1px solid #d8e8e3;
+  background: var(--surface);
+}
+
+.message-role {
+  margin-bottom: 5px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  opacity: 0.78;
+  text-transform: uppercase;
+}
+
+.message-content {
+  margin: 0;
+  font-size: 0.88rem;
   white-space: pre-wrap;
 }
 
 .sources-panel {
-  margin-top: 20px;
-  padding-top: 18px;
+  margin-top: 14px;
+  padding-top: 14px;
   border-top: 1px solid #d8e8e3;
-}
-
-.sources-panel[hidden] {
-  display: none;
 }
 
 .sources-list {
