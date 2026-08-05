@@ -12,6 +12,7 @@ def test_chat_interface_is_served_at_root() -> None:
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
     assert 'id="document-form"' in response.text
+    assert 'id="upload-help"' in response.text
     assert 'id="documents-list"' in response.text
     assert 'id="documents-empty"' in response.text
     assert 'id="refresh-documents"' in response.text
@@ -51,6 +52,19 @@ def test_browser_interface_supports_document_management() -> None:
     assert "encodeURIComponent(indexedDocument.filename)" in response.text
     assert "window.confirm" in response.text
     assert "await loadDocuments()" in response.text
+
+
+def test_browser_interface_uses_server_upload_constraints() -> None:
+    response = client.get("/static/app.js")
+
+    assert response.status_code == 200
+    assert 'fetch("/documents/capabilities")' in response.text
+    assert "data.supported_extensions.join" in response.text
+    assert (
+        "selectedFile.size > uploadCapabilities.max_upload_size_bytes"
+        in response.text
+    )
+    assert "validateSelectedFile(selectedFile)" in response.text
 
 
 def test_browser_interface_supports_conversation_history() -> None:

@@ -127,6 +127,7 @@ The sample documents describe a fictional organization and contain no real crede
 | --- | --- | --- |
 | `GET` | `/health` | Confirm the application is running |
 | `GET` | `/documents` | List indexed documents and chunk counts |
+| `GET` | `/documents/capabilities` | Get supported upload formats and size limit |
 | `POST` | `/documents/upload` | Save, chunk, embed, and index a document |
 | `DELETE` | `/documents/{filename}` | Remove a document and its indexed chunks |
 | `POST` | `/chat/ask` | Ask a question using indexed documents |
@@ -148,7 +149,7 @@ Successful response:
 }
 ```
 
-Uploading another document with the same filename is rejected instead of overwriting the existing file.
+Uploading another document with the same filename is rejected instead of overwriting the existing file. Documents larger than `MAX_UPLOAD_SIZE_MB` receive a `413 Payload Too Large` response. The browser reads the current limit from the API and checks the selected file before uploading; the server always enforces the limit.
 
 ### List indexed documents
 
@@ -224,6 +225,7 @@ Settings are loaded from environment variables and from `.env` when it is presen
 | `APP_ENV` | `local` | Current application environment |
 | `LOG_LEVEL` | `INFO` | Minimum console logging level |
 | `UPLOAD_DIR` | `data/uploads` | Uploaded document directory |
+| `MAX_UPLOAD_SIZE_MB` | `10` | Maximum document upload size in megabytes |
 | `OPENAI_API_KEY` | Not set | API key for embeddings and answers |
 | `OPENAI_EMBEDDING_MODEL` | `text-embedding-3-small` | Embedding model |
 | `OPENAI_CHAT_MODEL` | `gpt-5.6-terra` | Answer-generation model |

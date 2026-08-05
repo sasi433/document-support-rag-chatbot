@@ -1,6 +1,7 @@
 const documentForm = document.querySelector("#document-form");
 const fileInput = document.querySelector("#document-file");
 const fileLabel = document.querySelector("#file-label");
+const uploadHelp = document.querySelector("#upload-help");
 const uploadButton = document.querySelector("#upload-button");
 const uploadStatus = document.querySelector("#upload-status");
 const refreshDocumentsButton = document.querySelector("#refresh-documents");
@@ -18,6 +19,7 @@ const conversationList = document.querySelector("#conversation-list");
 
 const MAX_CONVERSATION_MESSAGES = 6;
 const conversationHistory = [];
+let uploadCapabilities = null;
 
 function setStatus(element, message, type = "") {
   element.textContent = message;
@@ -41,6 +43,79 @@ async function getErrorMessage(response) {
   }
 
   return `Request failed with status ${response.status}.`;
+}
+
+function formatFileSize(sizeBytes) {
+  const megabyte = 1024 * 1024;
+  const sizeInMegabytes = sizeBytes / megabyte;
+  const displayedSize = Number.isInteger(sizeInMegabytes)
+    ? sizeInMegabytes
+    : sizeInMegabytes.toFixed(1);
+  return `${displayedSize} MB`;
+}
+
+function validateSelectedFile(selectedFile) {
+  if (!uploadCapabilities) {
+    return "";
+  }
+
+  const normalizedFilename = selectedFile.name.toLowerCase();
+  const supported = uploadCapabilities.supported_extensions.some((extension) =>
+    normalizedFilename.endsWith(extension),
+  );
+
+  if (!supported) {
+    const extensions = uploadCapabilities.supported_extensions
+      .join(", ")
+      .toUpperCase();
+    return `Choose a supported document (${extensions}).`;
+  }
+
+  if (selectedFile.size > uploadCapabilities.max_upload_size_bytes) {
+    const maximumSize = formatFileSize(
+      uploadCapabilities.max_upload_size_bytes,
+    );
+    return `${selectedFile.name} is too large. Maximum upload size is ${maximumSize}.`;
+  }
+
+  return "";
+}
+
+async function loadUploadCapabilities() {
+  try {
+    const response = await fetch("/documents/capabilities");
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response));
+    }
+
+    const data = await response.json();
+    if (
+      !Array.isArray(data.supported_extensions) ||
+      data.supported_extensions.length === 0 ||
+      !Number.isInteger(data.max_upload_size_bytes) ||
+      data.max_upload_size_bytes <= 0
+    ) {
+      throw new Error("The server returned invalid upload limits.");
+    }
+
+    uploadCapabilities = data;
+    fileInput.accept = data.supported_extensions.join(",");
+    uploadHelp.textContent = `Maximum size: ${formatFileSize(
+      data.max_upload_size_bytes,
+    )}`;
+
+    const selectedFile = fileInput.files[0];
+    if (selectedFile) {
+      const validationMessage = validateSelectedFile(selectedFile);
+      setStatus(
+        uploadStatus,
+        validationMessage,
+        validationMessage ? "error" : "",
+      );
+    }
+  } catch {
+    uploadHelp.textContent = "TXT, Markdown, or PDF; server upload limit applies";
+  }
 }
 
 function createSourcesPanel(sources) {
@@ -221,7 +296,10 @@ async function deleteDocument(indexedDocument, button) {
 fileInput.addEventListener("change", () => {
   const selectedFile = fileInput.files[0];
   fileLabel.textContent = selectedFile ? selectedFile.name : "Choose a document";
-  setStatus(uploadStatus, "");
+  const validationMessage = selectedFile
+    ? validateSelectedFile(selectedFile)
+    : "";
+  setStatus(uploadStatus, validationMessage, validationMessage ? "error" : "");
 });
 
 documentForm.addEventListener("submit", async (event) => {
@@ -230,6 +308,12 @@ documentForm.addEventListener("submit", async (event) => {
   const selectedFile = fileInput.files[0];
   if (!selectedFile) {
     setStatus(uploadStatus, "Choose a document before uploading.", "error");
+    return;
+  }
+
+  const validationMessage = validateSelectedFile(selectedFile);
+  if (validationMessage) {
+    setStatus(uploadStatus, validationMessage, "error");
     return;
   }
 
@@ -263,6 +347,7 @@ documentForm.addEventListener("submit", async (event) => {
 });
 
 refreshDocumentsButton.addEventListener("click", loadDocuments);
+loadUploadCapabilities();
 loadDocuments();
 
 chatForm.addEventListener("submit", async (event) => {
