@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from app.core.config import get_settings
 from app.schemas.document import (
+    DocumentCapabilitiesResponse,
     DocumentDeleteResponse,
     DocumentListResponse,
     DocumentSummary,
@@ -20,9 +21,22 @@ from app.services.ingestion_service import (
     IngestionService,
     get_ingestion_service,
 )
-from app.utils.file_utils import save_upload_file
+from app.utils.file_utils import (
+    SUPPORTED_DOCUMENT_EXTENSIONS,
+    UploadTooLargeError,
+    save_upload_file,
+)
 
 router = APIRouter(prefix="/documents", tags=["documents"])
+
+
+@router.get("/capabilities", response_model=DocumentCapabilitiesResponse)
+def get_document_capabilities() -> DocumentCapabilitiesResponse:
+    settings = get_settings()
+    return DocumentCapabilitiesResponse(
+        supported_extensions=sorted(SUPPORTED_DOCUMENT_EXTENSIONS),
+        max_upload_size_bytes=settings.max_upload_size_bytes,
+    )
 
 
 @router.get("", response_model=DocumentListResponse)
@@ -55,7 +69,16 @@ async def upload_document(
     settings = get_settings()
 
     try:
-        saved_path = await save_upload_file(file, settings.upload_dir)
+        saved_path = await save_upload_file(
+            file,
+            settings.upload_dir,
+            settings.max_upload_size_bytes,
+        )
+    except UploadTooLargeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=str(exc),
+        ) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except FileExistsError as exc:

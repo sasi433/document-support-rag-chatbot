@@ -6,7 +6,15 @@ SUPPORTED_DOCUMENT_EXTENSIONS = {".md", ".pdf", ".txt"}
 UPLOAD_CHUNK_SIZE = 1024 * 1024
 
 
-async def save_upload_file(upload_file: UploadFile, upload_dir: Path) -> Path:
+class UploadTooLargeError(ValueError):
+    """Raised when an uploaded document exceeds the configured size limit."""
+
+
+async def save_upload_file(
+    upload_file: UploadFile,
+    upload_dir: Path,
+    max_upload_size_bytes: int,
+) -> Path:
     destination: Path | None = None
     file_created = False
     upload_complete = False
@@ -19,8 +27,15 @@ async def save_upload_file(upload_file: UploadFile, upload_dir: Path) -> Path:
 
         with destination.open("xb") as output_file:
             file_created = True
+            uploaded_size = 0
 
             while content := await upload_file.read(UPLOAD_CHUNK_SIZE):
+                uploaded_size += len(content)
+                if uploaded_size > max_upload_size_bytes:
+                    raise UploadTooLargeError(
+                        "Document exceeds maximum upload size of "
+                        f"{format_file_size(max_upload_size_bytes)}"
+                    )
                 output_file.write(content)
 
         upload_complete = True
@@ -30,6 +45,13 @@ async def save_upload_file(upload_file: UploadFile, upload_dir: Path) -> Path:
 
         if file_created and not upload_complete and destination is not None:
             destination.unlink(missing_ok=True)
+
+
+def format_file_size(size_bytes: int) -> str:
+    megabyte = 1024 * 1024
+    if size_bytes >= megabyte and size_bytes % megabyte == 0:
+        return f"{size_bytes // megabyte} MB"
+    return f"{size_bytes} bytes"
 
 
 def validate_document_filename(filename: str | None) -> str:

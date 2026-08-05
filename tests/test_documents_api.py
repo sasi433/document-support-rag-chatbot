@@ -92,6 +92,18 @@ def test_list_documents_returns_empty_list(
     assert response.json() == {"documents": []}
 
 
+def test_document_capabilities_returns_upload_constraints(
+    client: TestClient,
+) -> None:
+    response = client.get("/documents/capabilities")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "supported_extensions": [".md", ".pdf", ".txt"],
+        "max_upload_size_bytes": 10 * 1024 * 1024,
+    }
+
+
 def test_delete_document_returns_deleted_status(
     client: TestClient,
     document_management_service: Mock,
@@ -193,6 +205,28 @@ def test_upload_document_rejects_unsupported_file(
     assert response.status_code == 400
     assert response.json() == {"detail": "Unsupported document type: .csv"}
     assert not upload_dir.exists()
+    ingestion_service.ingest_document.assert_not_called()
+
+
+def test_upload_document_rejects_oversized_file(
+    client: TestClient,
+    upload_dir: Path,
+    ingestion_service: Mock,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(get_settings(), "max_upload_size_mb", 1)
+    content = b"x" * (1024 * 1024 + 1)
+
+    response = client.post(
+        "/documents/upload",
+        files={"file": ("large.txt", content, "text/plain")},
+    )
+
+    assert response.status_code == 413
+    assert response.json() == {
+        "detail": "Document exceeds maximum upload size of 1 MB"
+    }
+    assert not (upload_dir / "large.txt").exists()
     ingestion_service.ingest_document.assert_not_called()
 
 
