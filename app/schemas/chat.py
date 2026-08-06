@@ -2,8 +2,11 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.utils.file_utils import validate_document_filename
+
 MAX_CHAT_MESSAGE_LENGTH = 2000
 MAX_CONVERSATION_MESSAGES = 6
+MAX_SELECTED_DOCUMENTS = 20
 
 
 class ConversationMessage(BaseModel):
@@ -24,6 +27,10 @@ class ChatRequest(BaseModel):
     history: list[ConversationMessage] = Field(
         default_factory=list,
         max_length=MAX_CONVERSATION_MESSAGES,
+    )
+    documents: list[str] = Field(
+        default_factory=list,
+        max_length=MAX_SELECTED_DOCUMENTS,
     )
 
     @field_validator("question")
@@ -49,6 +56,14 @@ class ChatRequest(BaseModel):
                 raise ValueError("History roles must alternate user and assistant")
 
         return value
+
+    @field_validator("documents")
+    @classmethod
+    def validate_documents(cls, value: list[str]) -> list[str]:
+        documents = [validate_document_filename(filename) for filename in value]
+        if len(set(documents)) != len(documents):
+            raise ValueError("Selected documents must be unique")
+        return documents
 
 
 class SourceReference(BaseModel):

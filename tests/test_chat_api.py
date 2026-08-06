@@ -64,6 +64,7 @@ def test_ask_question_returns_grounded_answer(
     qa_service.answer_question.assert_called_once_with(
         "What is the refund policy?",
         history=[],
+        documents=[],
     )
 
 
@@ -98,6 +99,27 @@ def test_ask_question_passes_conversation_history(
                 content="Initial payments may be refunded within 14 days.",
             ),
         ],
+        documents=[],
+    )
+
+
+def test_ask_question_passes_selected_documents(
+    client: TestClient,
+    qa_service: Mock,
+) -> None:
+    response = client.post(
+        "/chat/ask",
+        json={
+            "question": "What is the refund policy?",
+            "documents": ["billing.txt", "terms.md"],
+        },
+    )
+
+    assert response.status_code == 200
+    qa_service.answer_question.assert_called_once_with(
+        "What is the refund policy?",
+        history=[],
+        documents=["billing.txt", "terms.md"],
     )
 
 
@@ -157,6 +179,30 @@ def test_ask_question_rejects_oversized_messages(
     response = client.post(
         "/chat/ask",
         json={"question": "x" * 2001},
+    )
+
+    assert response.status_code == 422
+    qa_service.answer_question.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "documents",
+    [
+        [""],
+        ["../billing.txt"],
+        ["billing.csv"],
+        ["billing.txt", "billing.txt"],
+        [f"document-{index}.txt" for index in range(21)],
+    ],
+)
+def test_ask_question_rejects_invalid_document_scope(
+    client: TestClient,
+    qa_service: Mock,
+    documents: list[str],
+) -> None:
+    response = client.post(
+        "/chat/ask",
+        json={"question": "What is the refund policy?", "documents": documents},
     )
 
     assert response.status_code == 422

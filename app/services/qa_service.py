@@ -59,6 +59,7 @@ class QAService:
         self,
         question: str,
         history: list[ConversationMessage] | None = None,
+        documents: list[str] | None = None,
     ) -> AnswerResult:
         normalized_question = question.strip()
         if not normalized_question:
@@ -76,10 +77,17 @@ class QAService:
         except EmbeddingServiceError as exc:
             raise QAServiceError("Failed to answer question") from exc
 
-        results = self._vector_store.search(
-            query_embedding,
-            limit=DEFAULT_RETRIEVAL_LIMIT,
-        )
+        if documents:
+            results = self._vector_store.search(
+                query_embedding,
+                limit=DEFAULT_RETRIEVAL_LIMIT,
+                sources=documents,
+            )
+        else:
+            results = self._vector_store.search(
+                query_embedding,
+                limit=DEFAULT_RETRIEVAL_LIMIT,
+            )
         if not results:
             return AnswerResult(answer=FALLBACK_ANSWER, sources=[])
 

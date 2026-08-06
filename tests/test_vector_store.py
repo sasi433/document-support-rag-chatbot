@@ -52,6 +52,43 @@ def test_vector_store_limits_results_to_available_documents(tmp_path) -> None:
     assert len(store.search([1.0, 0.0], limit=10)) == 1
 
 
+def test_vector_store_filters_search_by_source(tmp_path) -> None:
+    store = VectorStore(tmp_path, "test_documents")
+    store.add_documents(
+        ids=["manual-0", "billing-0", "terms-0"],
+        documents=["Restart the device.", "Pay monthly.", "Refund in 14 days."],
+        embeddings=[[1.0, 0.0], [0.9, 0.1], [0.8, 0.2]],
+        metadatas=[
+            {"source": "manual.txt", "chunk_index": 0},
+            {"source": "billing.txt", "chunk_index": 0},
+            {"source": "terms.md", "chunk_index": 0},
+        ],
+    )
+
+    results = store.search(
+        [1.0, 0.0],
+        limit=3,
+        sources=["billing.txt", "terms.md"],
+    )
+
+    assert {result.metadata["source"] for result in results} == {
+        "billing.txt",
+        "terms.md",
+    }
+
+
+def test_vector_store_returns_no_results_for_unknown_source(tmp_path) -> None:
+    store = VectorStore(tmp_path, "test_documents")
+    store.add_documents(
+        ids=["manual-0"],
+        documents=["Restart the device."],
+        embeddings=[[1.0, 0.0]],
+        metadatas=[{"source": "manual.txt", "chunk_index": 0}],
+    )
+
+    assert store.search([1.0, 0.0], sources=["missing.txt"]) == []
+
+
 def test_vector_store_returns_no_results_for_empty_collection(tmp_path) -> None:
     store = VectorStore(tmp_path, "test_documents")
 
@@ -112,19 +149,21 @@ def test_vector_store_rejects_misaligned_documents(tmp_path) -> None:
 
 
 @pytest.mark.parametrize(
-    ("query_embedding", "limit", "message"),
+    ("query_embedding", "limit", "sources", "message"),
     [
-        ([], 5, "Query embedding cannot be empty"),
-        ([1.0, 0.0], 0, "Search limit must be greater than zero"),
+        ([], 5, None, "Query embedding cannot be empty"),
+        ([1.0, 0.0], 0, None, "Search limit must be greater than zero"),
+        ([1.0, 0.0], 5, ["  "], "Search sources cannot be empty"),
     ],
 )
 def test_vector_store_rejects_invalid_search(
     tmp_path,
     query_embedding: list[float],
     limit: int,
+    sources: list[str] | None,
     message: str,
 ) -> None:
     store = VectorStore(tmp_path, "test_documents")
 
     with pytest.raises(ValueError, match=message):
-        store.search(query_embedding, limit)
+        store.search(query_embedding, limit, sources)

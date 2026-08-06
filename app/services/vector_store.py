@@ -62,6 +62,7 @@ class VectorStore:
         self,
         query_embedding: list[float],
         limit: int = 5,
+        sources: list[str] | None = None,
     ) -> list[VectorSearchResult]:
         if not query_embedding:
             raise ValueError("Query embedding cannot be empty")
@@ -69,15 +70,27 @@ class VectorStore:
         if limit <= 0:
             raise ValueError("Search limit must be greater than zero")
 
+        normalized_sources = list(
+            dict.fromkeys(source.strip() for source in (sources or []))
+        )
+        if any(not source for source in normalized_sources):
+            raise ValueError("Search sources cannot be empty")
+
         record_count = self._collection.count()
         if record_count == 0:
             return []
 
-        response = self._collection.query(
-            query_embeddings=[query_embedding],
-            n_results=min(limit, record_count),
-            include=["documents", "metadatas", "distances"],
-        )
+        query_options = {
+            "query_embeddings": [query_embedding],
+            "n_results": min(limit, record_count),
+            "include": ["documents", "metadatas", "distances"],
+        }
+        if len(normalized_sources) == 1:
+            query_options["where"] = {"source": normalized_sources[0]}
+        elif normalized_sources:
+            query_options["where"] = {"source": {"$in": normalized_sources}}
+
+        response = self._collection.query(**query_options)
 
         ids = response["ids"][0]
         documents = response["documents"][0] if response["documents"] else []

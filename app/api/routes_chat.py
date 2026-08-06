@@ -19,6 +19,7 @@ def ask_question(
         result = qa_service.answer_question(
             request.question,
             history=request.history,
+            documents=request.documents,
         )
     except QAServiceError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc

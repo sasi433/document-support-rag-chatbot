@@ -148,6 +148,29 @@ def test_answer_question_uses_history_for_follow_up_context() -> None:
     ]
 
 
+def test_answer_question_limits_retrieval_to_selected_documents() -> None:
+    embedding_service = Mock(spec=EmbeddingService)
+    embedding_service.embed_text.return_value = [0.1, 0.2]
+    vector_store = Mock(spec=VectorStore)
+    vector_store.count.return_value = 2
+    vector_store.search.return_value = []
+    client = Mock()
+
+    result = make_service(embedding_service, vector_store, client).answer_question(
+        "What is the refund policy?",
+        documents=["billing.txt"],
+    )
+
+    assert result.answer == FALLBACK_ANSWER
+    assert result.sources == []
+    vector_store.search.assert_called_once_with(
+        [0.1, 0.2],
+        limit=3,
+        sources=["billing.txt"],
+    )
+    client.responses.create.assert_not_called()
+
+
 def test_answer_question_limits_source_snippet_length() -> None:
     embedding_service = Mock(spec=EmbeddingService)
     embedding_service.embed_text.return_value = [0.1, 0.2]
