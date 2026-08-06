@@ -14,6 +14,7 @@ The application includes a FastAPI backend, a lightweight browser interface, str
 - Store and search embeddings with persistent ChromaDB.
 - Generate answers using only retrieved document context.
 - Ask contextual follow-up questions using recent browser-session history.
+- Limit a question to one indexed document or search the full library.
 - Return filename, chunk index, and a short snippet for each source.
 - Use an explicit fallback when the documents do not contain an answer.
 - Run through the browser, REST API, Docker, or Docker Compose.
@@ -210,6 +211,15 @@ Follow-up requests may include up to six recent messages as complete, alternatin
       "content": "The first subscription payment may be refunded within 14 days."
     }
   ]
+}
+```
+
+Questions may optionally be limited to one or more indexed filenames. Omitting `documents` or sending an empty list searches the full library:
+
+```json
+{
+  "question": "What is the refund policy?",
+  "documents": ["company_faq.md"]
 }
 ```
 

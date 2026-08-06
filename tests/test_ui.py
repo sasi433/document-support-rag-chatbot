@@ -17,6 +17,7 @@ def test_chat_interface_is_served_at_root() -> None:
     assert 'id="documents-empty"' in response.text
     assert 'id="refresh-documents"' in response.text
     assert 'id="chat-form"' in response.text
+    assert 'id="document-scope"' in response.text
     assert 'id="conversation-list"' in response.text
     assert 'id="conversation-empty"' in response.text
     assert 'id="clear-conversation"' in response.text
@@ -67,13 +68,22 @@ def test_browser_interface_uses_server_upload_constraints() -> None:
     assert "validateSelectedFile(selectedFile)" in response.text
 
 
+def test_browser_interface_supports_document_scoped_chat() -> None:
+    response = client.get("/static/app.js")
+
+    assert response.status_code == 200
+    assert "renderDocumentScope(documents)" in response.text
+    assert "documentScope.value ? [documentScope.value] : []" in response.text
+    assert "JSON.stringify({ question, history, documents })" in response.text
+
+
 def test_browser_interface_supports_conversation_history() -> None:
     response = client.get("/static/app.js")
 
     assert response.status_code == 200
     assert "const MAX_CONVERSATION_MESSAGES = 6" in response.text
     assert "conversationHistory.slice(-MAX_CONVERSATION_MESSAGES)" in response.text
-    assert "JSON.stringify({ question, history })" in response.text
+    assert "JSON.stringify({ question, history, documents })" in response.text
     assert 'appendConversationMessage("user", question)' in response.text
     assert 'appendConversationMessage("assistant", data.answer' in response.text
     assert "conversationHistory.length = 0" in response.text

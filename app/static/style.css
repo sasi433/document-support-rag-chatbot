@@ -30,6 +30,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -311,6 +312,43 @@ button:disabled {
   border-radius: 9px;
   color: var(--error);
   background: var(--error-soft);
+}
+
+.scope-control {
+  display: grid;
+  gap: 6px;
+}
+
+.scope-control label {
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.scope-control small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+select {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 42px 10px 13px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  background: var(--surface);
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(20, 108, 91, 0.12);
+}
+
+select:disabled {
+  color: var(--muted);
+  background: var(--background);
 }
 
 .document-library {

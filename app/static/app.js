@@ -10,6 +10,7 @@ const documentsEmpty = document.querySelector("#documents-empty");
 const documentsList = document.querySelector("#documents-list");
 
 const chatForm = document.querySelector("#chat-form");
+const documentScope = document.querySelector("#document-scope");
 const questionInput = document.querySelector("#question");
 const askButton = document.querySelector("#ask-button");
 const chatStatus = document.querySelector("#chat-status");
@@ -203,6 +204,7 @@ function clearConversation() {
 }
 
 function renderDocuments(documents) {
+  renderDocumentScope(documents);
   documentsList.replaceChildren();
   documentsEmpty.hidden = documents.length !== 0;
 
@@ -233,6 +235,27 @@ function renderDocuments(documents) {
     item.append(details, deleteButton);
     documentsList.append(item);
   }
+}
+
+function renderDocumentScope(documents) {
+  const previousSelection = documentScope.value;
+  const allDocumentsOption = document.createElement("option");
+  allDocumentsOption.value = "";
+  allDocumentsOption.textContent = "All indexed documents";
+  documentScope.replaceChildren(allDocumentsOption);
+
+  for (const indexedDocument of documents) {
+    const option = document.createElement("option");
+    option.value = indexedDocument.filename;
+    option.textContent = indexedDocument.filename;
+    documentScope.append(option);
+  }
+
+  const previousDocumentStillExists = documents.some(
+    (indexedDocument) => indexedDocument.filename === previousSelection,
+  );
+  documentScope.value = previousDocumentStillExists ? previousSelection : "";
+  documentScope.disabled = documents.length === 0;
 }
 
 async function loadDocuments() {
@@ -363,12 +386,13 @@ chatForm.addEventListener("submit", async (event) => {
   clearConversationButton.disabled = true;
   setStatus(chatStatus, "Searching indexed documents...");
   const history = conversationHistory.slice(-MAX_CONVERSATION_MESSAGES);
+  const documents = documentScope.value ? [documentScope.value] : [];
 
   try {
     const response = await fetch("/chat/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, history }),
+      body: JSON.stringify({ question, history, documents }),
     });
 
     if (!response.ok) {
