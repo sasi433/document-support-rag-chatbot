@@ -9,6 +9,7 @@ The application includes a FastAPI backend, a lightweight browser interface, str
 - Upload `.txt`, `.md`, and `.pdf` documents.
 - View indexed documents and their chunk counts.
 - Remove uploaded documents and their indexed content.
+- Download original documents from the library or an answer's source list.
 - Extract and split document text into overlapping chunks.
 - Generate embeddings with OpenAI.
 - Store and search embeddings with persistent ChromaDB.
@@ -129,6 +130,7 @@ The sample documents describe a fictional organization and contain no real crede
 | `GET` | `/health` | Confirm the application is running |
 | `GET` | `/documents` | List indexed documents and chunk counts |
 | `GET` | `/documents/capabilities` | Get supported upload formats and size limit |
+| `GET` | `/documents/{filename}/download` | Download an uploaded document |
 | `POST` | `/documents/upload` | Save, chunk, embed, and index a document |
 | `DELETE` | `/documents/{filename}` | Remove a document and its indexed chunks |
 | `POST` | `/chat/ask` | Ask a question using indexed documents |
@@ -151,6 +153,16 @@ Successful response:
 ```
 
 Uploading another document with the same filename is rejected instead of overwriting the existing file. Documents larger than `MAX_UPLOAD_SIZE_MB` receive a `413 Payload Too Large` response. The browser reads the current limit from the API and checks the selected file before uploading; the server always enforces the limit.
+
+### Download a document
+
+```powershell
+Invoke-WebRequest `
+  -Uri http://127.0.0.1:8000/documents/company_faq.md/download `
+  -OutFile company_faq.md
+```
+
+Downloads are restricted to supported files inside the upload directory and are returned as non-cacheable attachments.
 
 ### List indexed documents
 

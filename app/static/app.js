@@ -46,6 +46,16 @@ async function getErrorMessage(response) {
   return `Request failed with status ${response.status}.`;
 }
 
+function createDocumentDownloadLink(filename, label, className) {
+  const link = document.createElement("a");
+  link.className = className;
+  link.href = `/documents/${encodeURIComponent(filename)}/download`;
+  link.textContent = label;
+  link.setAttribute("download", "");
+  link.setAttribute("aria-label", `Download ${filename}`);
+  return link;
+}
+
 function formatFileSize(sizeBytes) {
   const megabyte = 1024 * 1024;
   const sizeInMegabytes = sizeBytes / megabyte;
@@ -138,8 +148,11 @@ function createSourcesPanel(sources) {
     const metadata = document.createElement("div");
     metadata.className = "source-metadata";
 
-    const filename = document.createElement("strong");
-    filename.textContent = source.filename;
+    const filename = createDocumentDownloadLink(
+      source.filename,
+      source.filename,
+      "source-link",
+    );
 
     const chunk = document.createElement("span");
     chunk.textContent = `Chunk ${source.chunk_index}`;
@@ -222,6 +235,15 @@ function renderDocuments(documents) {
     const chunkLabel = indexedDocument.chunk_count === 1 ? "chunk" : "chunks";
     chunkCount.textContent = `${indexedDocument.chunk_count} ${chunkLabel}`;
 
+    const actions = document.createElement("div");
+    actions.className = "document-actions";
+
+    const downloadLink = createDocumentDownloadLink(
+      indexedDocument.filename,
+      "Download",
+      "download-button",
+    );
+
     const deleteButton = document.createElement("button");
     deleteButton.className = "delete-button";
     deleteButton.type = "button";
@@ -231,8 +253,9 @@ function renderDocuments(documents) {
       deleteDocument(indexedDocument, deleteButton),
     );
 
+    actions.append(downloadLink, deleteButton);
     details.append(filename, chunkCount);
-    item.append(details, deleteButton);
+    item.append(details, actions);
     documentsList.append(item);
   }
 }

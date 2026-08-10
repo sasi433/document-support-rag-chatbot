@@ -53,6 +53,17 @@ def test_browser_interface_supports_document_management() -> None:
     assert "encodeURIComponent(indexedDocument.filename)" in response.text
     assert "window.confirm" in response.text
     assert "await loadDocuments()" in response.text
+    assert '"download-button"' in response.text
+
+
+def test_browser_interface_links_documents_and_sources_to_downloads() -> None:
+    response = client.get("/static/app.js")
+
+    assert response.status_code == 200
+    assert "function createDocumentDownloadLink" in response.text
+    assert "encodeURIComponent(filename)" in response.text
+    assert "source.filename" in response.text
+    assert 'link.setAttribute("download", "")' in response.text
 
 
 def test_browser_interface_uses_server_upload_constraints() -> None:
