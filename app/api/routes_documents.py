@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
 
 from app.core.config import get_settings
 from app.schemas.document import (
@@ -22,6 +23,7 @@ from app.services.ingestion_service import (
     get_ingestion_service,
 )
 from app.utils.file_utils import (
+    DOCUMENT_MEDIA_TYPES,
     SUPPORTED_DOCUMENT_EXTENSIONS,
     UploadTooLargeError,
     save_upload_file,
@@ -101,6 +103,29 @@ async def upload_document(
         raise
 
     return DocumentUploadResponse(filename=saved_path.name, status="uploaded")
+
+
+@router.get("/{filename}/download", response_class=FileResponse)
+def download_document(
+    filename: str,
+    document_service: DocumentManagementService = Depends(
+        get_document_management_service
+    ),
+) -> FileResponse:
+    try:
+        document_path = document_service.get_document_path(filename)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except DocumentNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    return FileResponse(
+        path=document_path,
+        filename=document_path.name,
+        media_type=DOCUMENT_MEDIA_TYPES[document_path.suffix.lower()],
+        headers={"Cache-Control": "no-store"},
+        content_disposition_type="attachment",
+    )
 
 
 @router.delete("/{filename}", response_model=DocumentDeleteResponse)

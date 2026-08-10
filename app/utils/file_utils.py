@@ -2,7 +2,12 @@ from pathlib import Path
 
 from fastapi import UploadFile
 
-SUPPORTED_DOCUMENT_EXTENSIONS = {".md", ".pdf", ".txt"}
+DOCUMENT_MEDIA_TYPES = {
+    ".md": "text/markdown",
+    ".pdf": "application/pdf",
+    ".txt": "text/plain",
+}
+SUPPORTED_DOCUMENT_EXTENSIONS = set(DOCUMENT_MEDIA_TYPES)
 UPLOAD_CHUNK_SIZE = 1024 * 1024
 
 

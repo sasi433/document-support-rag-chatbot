@@ -39,6 +39,56 @@ def test_list_documents_returns_sorted_sources_with_chunk_counts(
     ]
 
 
+def test_get_document_path_returns_safe_uploaded_file(
+    tmp_path: Path,
+    vector_store: VectorStore,
+) -> None:
+    upload_dir = tmp_path / "uploads"
+    upload_dir.mkdir()
+    document_path = upload_dir / "manual.txt"
+    document_path.write_text("Support instructions", encoding="utf-8")
+    service = DocumentManagementService(upload_dir, vector_store)
+
+    assert service.get_document_path("manual.txt") == document_path
+
+
+def test_get_document_path_rejects_missing_file(
+    tmp_path: Path,
+    vector_store: VectorStore,
+) -> None:
+    service = DocumentManagementService(tmp_path / "uploads", vector_store)
+
+    with pytest.raises(DocumentNotFoundError, match="Document not found: manual.txt"):
+        service.get_document_path("manual.txt")
+
+
+@pytest.mark.parametrize("filename", ["../manual.txt", "folder\\manual.txt"])
+def test_get_document_path_rejects_unsafe_filename(
+    tmp_path: Path,
+    vector_store: VectorStore,
+    filename: str,
+) -> None:
+    service = DocumentManagementService(tmp_path / "uploads", vector_store)
+
+    with pytest.raises(ValueError, match="must not include a path"):
+        service.get_document_path(filename)
+
+
+def test_get_document_path_rejects_symlink_outside_upload_directory(
+    tmp_path: Path,
+    vector_store: VectorStore,
+) -> None:
+    upload_dir = tmp_path / "uploads"
+    upload_dir.mkdir()
+    outside_document = tmp_path / "outside.txt"
+    outside_document.write_text("Private content", encoding="utf-8")
+    (upload_dir / "manual.txt").symlink_to(outside_document)
+    service = DocumentManagementService(upload_dir, vector_store)
+
+    with pytest.raises(ValueError, match="must stay inside the upload directory"):
+        service.get_document_path("manual.txt")
+
+
 def test_delete_document_removes_file_and_indexed_chunks(
     tmp_path: Path,
     vector_store: VectorStore,

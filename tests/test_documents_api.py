@@ -104,6 +104,58 @@ def test_document_capabilities_returns_upload_constraints(
     }
 
 
+def test_download_document_returns_file_as_attachment(
+    client: TestClient,
+    upload_dir: Path,
+    document_management_service: Mock,
+) -> None:
+    upload_dir.mkdir()
+    document_path = upload_dir / "manual.txt"
+    document_path.write_text("Support instructions", encoding="utf-8")
+    document_management_service.get_document_path.return_value = document_path
+
+    response = client.get("/documents/manual.txt/download")
+
+    assert response.status_code == 200
+    assert response.content == b"Support instructions"
+    assert response.headers["content-type"].startswith("text/plain")
+    assert response.headers["content-disposition"] == (
+        'attachment; filename="manual.txt"'
+    )
+    assert response.headers["cache-control"] == "no-store"
+    document_management_service.get_document_path.assert_called_once_with(
+        "manual.txt"
+    )
+
+
+def test_download_document_returns_not_found(
+    client: TestClient,
+    document_management_service: Mock,
+) -> None:
+    document_management_service.get_document_path.side_effect = DocumentNotFoundError(
+        "Document not found: missing.txt"
+    )
+
+    response = client.get("/documents/missing.txt/download")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Document not found: missing.txt"}
+
+
+def test_download_document_rejects_invalid_filename(
+    client: TestClient,
+    document_management_service: Mock,
+) -> None:
+    document_management_service.get_document_path.side_effect = ValueError(
+        "Unsupported document type: .csv"
+    )
+
+    response = client.get("/documents/manual.csv/download")
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Unsupported document type: .csv"}
+
+
 def test_delete_document_returns_deleted_status(
     client: TestClient,
     document_management_service: Mock,

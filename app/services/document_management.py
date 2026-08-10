@@ -28,6 +28,16 @@ class DocumentManagementService:
             for source, chunk_count in sorted(self._vector_store.source_counts().items())
         ]
 
+    def get_document_path(self, filename: str) -> Path:
+        safe_filename = validate_document_filename(filename)
+        upload_root = self._upload_dir.resolve()
+        upload_path = (upload_root / safe_filename).resolve()
+        if upload_path.parent != upload_root:
+            raise ValueError("Document path must stay inside the upload directory")
+        if not upload_path.is_file():
+            raise DocumentNotFoundError(f"Document not found: {safe_filename}")
+        return upload_path
+
     def delete_document(self, filename: str) -> None:
         safe_filename = validate_document_filename(filename)
         upload_path = self._upload_dir / safe_filename
