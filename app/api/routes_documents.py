@@ -53,6 +53,9 @@ def list_documents(
             DocumentSummary(
                 filename=document.filename,
                 chunk_count=document.chunk_count,
+                size_bytes=document.size_bytes,
+                modified_at=document.modified_at,
+                download_available=document.download_available,
             )
             for document in documents
         ]

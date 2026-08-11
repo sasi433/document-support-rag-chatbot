@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
 
@@ -15,6 +16,9 @@ class DocumentNotFoundError(FileNotFoundError):
 class IndexedDocument:
     filename: str
     chunk_count: int
+    size_bytes: int | None = None
+    modified_at: datetime | None = None
+    download_available: bool = False
 
 
 class DocumentManagementService:
@@ -23,10 +27,28 @@ class DocumentManagementService:
         self._vector_store = vector_store
 
     def list_documents(self) -> list[IndexedDocument]:
-        return [
-            IndexedDocument(filename=source, chunk_count=chunk_count)
-            for source, chunk_count in sorted(self._vector_store.source_counts().items())
-        ]
+        documents = []
+        for source, chunk_count in sorted(self._vector_store.source_counts().items()):
+            try:
+                document_path = self.get_document_path(source)
+                file_stat = document_path.stat()
+            except (DocumentNotFoundError, OSError, ValueError):
+                documents.append(
+                    IndexedDocument(filename=source, chunk_count=chunk_count)
+                )
+                continue
+
+            documents.append(
+                IndexedDocument(
+                    filename=source,
+                    chunk_count=chunk_count,
+                    size_bytes=file_stat.st_size,
+                    modified_at=datetime.fromtimestamp(file_stat.st_mtime, tz=UTC),
+                    download_available=True,
+                )
+            )
+
+        return documents
 
     def get_document_path(self, filename: str) -> Path:
         safe_filename = validate_document_filename(filename)

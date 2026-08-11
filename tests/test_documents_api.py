@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -67,7 +68,13 @@ def test_list_documents_returns_indexed_documents(
     document_management_service: Mock,
 ) -> None:
     document_management_service.list_documents.return_value = [
-        IndexedDocument(filename="billing.md", chunk_count=1),
+        IndexedDocument(
+            filename="billing.md",
+            chunk_count=1,
+            size_bytes=2048,
+            modified_at=datetime(2026, 8, 11, 10, 30, tzinfo=UTC),
+            download_available=True,
+        ),
         IndexedDocument(filename="manual.txt", chunk_count=2),
     ]
 
@@ -76,8 +83,20 @@ def test_list_documents_returns_indexed_documents(
     assert response.status_code == 200
     assert response.json() == {
         "documents": [
-            {"filename": "billing.md", "chunk_count": 1},
-            {"filename": "manual.txt", "chunk_count": 2},
+            {
+                "filename": "billing.md",
+                "chunk_count": 1,
+                "size_bytes": 2048,
+                "modified_at": "2026-08-11T10:30:00Z",
+                "download_available": True,
+            },
+            {
+                "filename": "manual.txt",
+                "chunk_count": 2,
+                "size_bytes": None,
+                "modified_at": None,
+                "download_available": False,
+            },
         ]
     }
 

@@ -1,3 +1,5 @@
+import os
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -33,10 +35,42 @@ def test_list_documents_returns_sorted_sources_with_chunk_counts(
 
     documents = service.list_documents()
 
-    assert [(document.filename, document.chunk_count) for document in documents] == [
-        ("billing.md", 1),
-        ("manual.txt", 2),
+    assert [
+        (
+            document.filename,
+            document.chunk_count,
+            document.size_bytes,
+            document.modified_at,
+            document.download_available,
+        )
+        for document in documents
+    ] == [
+        ("billing.md", 1, None, None, False),
+        ("manual.txt", 2, None, None, False),
     ]
+
+
+def test_list_documents_includes_uploaded_file_metadata(
+    tmp_path: Path,
+    vector_store: VectorStore,
+) -> None:
+    upload_dir = tmp_path / "uploads"
+    upload_dir.mkdir()
+    document_path = upload_dir / "manual.txt"
+    document_path.write_text("Support instructions", encoding="utf-8")
+    modified_at = datetime(2026, 8, 11, 10, 30, tzinfo=UTC)
+    timestamp = modified_at.timestamp()
+    os.utime(document_path, (timestamp, timestamp))
+    service = DocumentManagementService(upload_dir, vector_store)
+
+    documents = {document.filename: document for document in service.list_documents()}
+
+    assert documents["manual.txt"].size_bytes == len(b"Support instructions")
+    assert documents["manual.txt"].modified_at == modified_at
+    assert documents["manual.txt"].download_available is True
+    assert documents["billing.md"].size_bytes is None
+    assert documents["billing.md"].modified_at is None
+    assert documents["billing.md"].download_available is False
 
 
 def test_get_document_path_returns_safe_uploaded_file(

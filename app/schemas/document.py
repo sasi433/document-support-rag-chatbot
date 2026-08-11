@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -9,6 +11,9 @@ class DocumentUploadResponse(BaseModel):
 class DocumentSummary(BaseModel):
     filename: str
     chunk_count: int
+    size_bytes: int | None
+    modified_at: datetime | None
+    download_available: bool
 
 
 class DocumentListResponse(BaseModel):
