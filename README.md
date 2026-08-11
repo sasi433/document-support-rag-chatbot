@@ -7,7 +7,7 @@ The application includes a FastAPI backend, a lightweight browser interface, str
 ## Features
 
 - Upload `.txt`, `.md`, and `.pdf` documents.
-- View indexed documents and their chunk counts.
+- View indexed documents with chunk counts, file size, and modification time.
 - Remove uploaded documents and their indexed content.
 - Download original documents from the library or an answer's source list.
 - Extract and split document text into overlapping chunks.
@@ -128,7 +128,7 @@ The sample documents describe a fictional organization and contain no real crede
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
 | `GET` | `/health` | Confirm the application is running |
-| `GET` | `/documents` | List indexed documents and chunk counts |
+| `GET` | `/documents` | List indexed documents and file metadata |
 | `GET` | `/documents/capabilities` | Get supported upload formats and size limit |
 | `GET` | `/documents/{filename}/download` | Download an uploaded document |
 | `POST` | `/documents/upload` | Save, chunk, embed, and index a document |
@@ -170,7 +170,7 @@ Downloads are restricted to supported files inside the upload directory and are 
 Invoke-RestMethod http://127.0.0.1:8000/documents
 ```
 
-Each document includes its filename and the number of chunks stored in ChromaDB.
+Each document includes its filename, ChromaDB chunk count, file size, UTC modification time, and whether the original file is available to download. Missing original files remain visible as orphaned index entries with null file metadata so they can still be deleted.
 
 ### Delete a document
 

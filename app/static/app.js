@@ -57,12 +57,41 @@ function createDocumentDownloadLink(filename, label, className) {
 }
 
 function formatFileSize(sizeBytes) {
+  const kilobyte = 1024;
   const megabyte = 1024 * 1024;
+  if (sizeBytes < kilobyte) {
+    const unit = sizeBytes === 1 ? "byte" : "bytes";
+    return `${sizeBytes} ${unit}`;
+  }
+  if (sizeBytes < megabyte) {
+    const sizeInKilobytes = sizeBytes / kilobyte;
+    const displayedSize = sizeInKilobytes >= 10
+      ? Math.round(sizeInKilobytes)
+      : sizeInKilobytes.toFixed(1);
+    return `${displayedSize} KB`;
+  }
+
   const sizeInMegabytes = sizeBytes / megabyte;
   const displayedSize = Number.isInteger(sizeInMegabytes)
     ? sizeInMegabytes
     : sizeInMegabytes.toFixed(1);
   return `${displayedSize} MB`;
+}
+
+function formatModifiedAt(value) {
+  if (!value) {
+    return "";
+  }
+
+  const modifiedAt = new Date(value);
+  if (Number.isNaN(modifiedAt.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(modifiedAt);
 }
 
 function validateSelectedFile(selectedFile) {
@@ -231,18 +260,32 @@ function renderDocuments(documents) {
     const filename = document.createElement("strong");
     filename.textContent = indexedDocument.filename;
 
-    const chunkCount = document.createElement("span");
+    const metadata = document.createElement("span");
+    metadata.className = "document-metadata";
     const chunkLabel = indexedDocument.chunk_count === 1 ? "chunk" : "chunks";
-    chunkCount.textContent = `${indexedDocument.chunk_count} ${chunkLabel}`;
+    const metadataParts = [`${indexedDocument.chunk_count} ${chunkLabel}`];
+
+    if (
+      Number.isInteger(indexedDocument.size_bytes) &&
+      indexedDocument.size_bytes >= 0
+    ) {
+      metadataParts.push(formatFileSize(indexedDocument.size_bytes));
+    }
+
+    const modifiedAt = formatModifiedAt(indexedDocument.modified_at);
+    if (modifiedAt) {
+      metadataParts.push(modifiedAt);
+    }
+
+    if (!indexedDocument.download_available) {
+      metadataParts.push("Original file unavailable");
+      metadata.classList.add("unavailable");
+    }
+
+    metadata.textContent = metadataParts.join(" · ");
 
     const actions = document.createElement("div");
     actions.className = "document-actions";
-
-    const downloadLink = createDocumentDownloadLink(
-      indexedDocument.filename,
-      "Download",
-      "download-button",
-    );
 
     const deleteButton = document.createElement("button");
     deleteButton.className = "delete-button";
@@ -253,8 +296,17 @@ function renderDocuments(documents) {
       deleteDocument(indexedDocument, deleteButton),
     );
 
-    actions.append(downloadLink, deleteButton);
-    details.append(filename, chunkCount);
+    if (indexedDocument.download_available) {
+      actions.append(
+        createDocumentDownloadLink(
+          indexedDocument.filename,
+          "Download",
+          "download-button",
+        ),
+      );
+    }
+    actions.append(deleteButton);
+    details.append(filename, metadata);
     item.append(details, actions);
     documentsList.append(item);
   }

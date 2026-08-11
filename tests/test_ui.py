@@ -66,6 +66,18 @@ def test_browser_interface_links_documents_and_sources_to_downloads() -> None:
     assert 'link.setAttribute("download", "")' in response.text
 
 
+def test_browser_interface_renders_document_file_metadata() -> None:
+    response = client.get("/static/app.js")
+
+    assert response.status_code == 200
+    assert "function formatFileSize" in response.text
+    assert "function formatModifiedAt" in response.text
+    assert "indexedDocument.size_bytes" in response.text
+    assert "indexedDocument.modified_at" in response.text
+    assert "if (indexedDocument.download_available)" in response.text
+    assert "Original file unavailable" in response.text
+
+
 def test_browser_interface_uses_server_upload_constraints() -> None:
     response = client.get("/static/app.js")
 
