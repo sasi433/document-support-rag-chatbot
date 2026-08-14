@@ -18,12 +18,14 @@ def make_service(
     embedding_service: Mock,
     vector_store: Mock,
     client: Mock,
+    max_retrieval_distance: float = 1.0,
 ) -> QAService:
     return QAService(
         embedding_service=embedding_service,
         vector_store=vector_store,
         api_key=None,
         model="test-chat-model",
+        max_retrieval_distance=max_retrieval_distance,
         client=client,
     )
 
@@ -171,6 +173,45 @@ def test_answer_question_limits_retrieval_to_selected_documents() -> None:
     client.responses.create.assert_not_called()
 
 
+def test_answer_question_removes_chunks_above_relevance_threshold() -> None:
+    embedding_service = Mock(spec=EmbeddingService)
+    embedding_service.embed_text.return_value = [0.1, 0.2]
+    vector_store = Mock(spec=VectorStore)
+    vector_store.count.return_value = 2
+    vector_store.search.return_value = [
+        VectorSearchResult(
+            record_id="billing.txt:0",
+            document="Refunds are available within 30 days.",
+            metadata={"source": "billing.txt", "chunk_index": 0},
+            distance=0.5,
+        ),
+        VectorSearchResult(
+            record_id="unrelated.txt:0",
+            document="The cafeteria serves lunch at noon.",
+            metadata={"source": "unrelated.txt", "chunk_index": 0},
+            distance=0.51,
+        ),
+    ]
+    client = Mock()
+    client.responses.create.return_value = SimpleNamespace(
+        output_text="Refunds are available within 30 days."
+    )
+
+    result = make_service(
+        embedding_service,
+        vector_store,
+        client,
+        max_retrieval_distance=0.5,
+    ).answer_question("What is the refund policy?")
+
+    assert [source.filename for source in result.sources] == ["billing.txt"]
+    request_content = client.responses.create.call_args.kwargs["input"][-1][
+        "content"
+    ]
+    assert "Refunds are available within 30 days." in request_content
+    assert "cafeteria" not in request_content
+
+
 def test_answer_question_limits_source_snippet_length() -> None:
     embedding_service = Mock(spec=EmbeddingService)
     embedding_service.embed_text.return_value = [0.1, 0.2]
@@ -308,3 +349,8 @@ def test_answer_question_rejects_empty_provider_output() -> None:
 def test_answer_question_rejects_empty_question() -> None:
     with pytest.raises(ValueError, match="Question cannot be empty"):
         make_service(Mock(), Mock(), Mock()).answer_question("  ")
+
+
+def test_qa_service_rejects_negative_retrieval_distance() -> None:
+    with pytest.raises(ValueError, match="cannot be negative"):
+        make_service(Mock(), Mock(), Mock(), max_retrieval_distance=-0.1)

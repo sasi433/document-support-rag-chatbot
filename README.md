@@ -27,7 +27,9 @@ Document -> Extract text -> Create chunks -> Generate embeddings -> ChromaDB
 Question + recent history -> Retrieve chunks -> Generate answer -> Show sources
 ```
 
-For each question, the application retrieves up to three relevant chunks. Recent conversation history can clarify follow-up intent, but the answer model is instructed to use document context as its only factual evidence. If the context is insufficient, the application returns:
+For each question, the application retrieves up to three relevant chunks. Recent conversation history can clarify follow-up intent, but the answer model is instructed to use document context as its only factual evidence. Chunks whose vector distance exceeds `MAX_RETRIEVAL_DISTANCE` are discarded before answer generation. If no relevant chunks remain, the fallback is returned without calling the answer model.
+
+If the context is insufficient, the application returns:
 
 ```text
 I don't know based on the provided documents.
@@ -251,6 +253,7 @@ Settings are loaded from environment variables and from `.env` when it is presen
 | `OPENAI_API_KEY` | Not set | API key for embeddings and answers |
 | `OPENAI_EMBEDDING_MODEL` | `text-embedding-3-small` | Embedding model |
 | `OPENAI_CHAT_MODEL` | `gpt-5.6-terra` | Answer-generation model |
+| `MAX_RETRIEVAL_DISTANCE` | `1.0` | Maximum accepted vector distance; lower is more relevant |
 | `CHROMA_PERSIST_DIR` | `data/chroma` | Persistent vector database directory |
 | `CHROMA_COLLECTION_NAME` | `support_documents` | ChromaDB collection name |
 

@@ -40,10 +40,13 @@ class QAService:
         vector_store: VectorStore,
         api_key: str | None,
         model: str,
+        max_retrieval_distance: float,
         client: OpenAI | None = None,
     ) -> None:
         if not model.strip():
             raise ValueError("Chat model cannot be empty")
+        if max_retrieval_distance < 0:
+            raise ValueError("Maximum retrieval distance cannot be negative")
 
         if client is None:
             if not api_key:
@@ -54,6 +57,7 @@ class QAService:
         self._vector_store = vector_store
         self._client = client
         self._model = model
+        self._max_retrieval_distance = max_retrieval_distance
 
     def answer_question(
         self,
@@ -88,6 +92,11 @@ class QAService:
                 query_embedding,
                 limit=DEFAULT_RETRIEVAL_LIMIT,
             )
+        results = [
+            result
+            for result in results
+            if result.distance <= self._max_retrieval_distance
+        ]
         if not results:
             return AnswerResult(answer=FALLBACK_ANSWER, sources=[])
 
@@ -215,5 +224,6 @@ def get_qa_service() -> QAService:
         vector_store=vector_store,
         api_key=None,
         model=settings.openai_chat_model,
+        max_retrieval_distance=settings.max_retrieval_distance,
         client=client,
     )

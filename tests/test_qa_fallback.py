@@ -17,6 +17,7 @@ def make_service(tmp_path: Path) -> tuple[QAService, Mock, VectorStore, Mock]:
         vector_store=vector_store,
         api_key=None,
         model="test-chat-model",
+        max_retrieval_distance=1.0,
         client=client,
     )
     return service, embedding_service, vector_store, client
@@ -60,6 +61,25 @@ def test_unsupported_question_returns_fallback_without_sources(
         "content"
     ]
     assert "Standard support is available" in request["input"][-1]["content"]
+
+
+def test_distant_document_returns_fallback_without_answer_provider(
+    tmp_path: Path,
+) -> None:
+    service, embedding_service, vector_store, client = make_service(tmp_path)
+    vector_store.add_documents(
+        ids=["company.txt:0"],
+        documents=["Standard support is available from 08:00 to 18:00 CET."],
+        embeddings=[[1.0, 0.0]],
+        metadatas=[{"source": "company.txt", "chunk_index": 0}],
+    )
+    embedding_service.embed_text.return_value = [-1.0, 0.0]
+
+    result = service.answer_question("What is the refund policy?")
+
+    assert result.answer == FALLBACK_ANSWER
+    assert result.sources == []
+    client.responses.create.assert_not_called()
 
 
 def test_supported_question_returns_answer_and_source(tmp_path: Path) -> None:
