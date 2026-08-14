@@ -38,3 +38,49 @@ jobs:
 
       - name: Run Ruff
         run: python -m ruff check .
+
+  container:
+    name: Docker build and smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Build image
+        run: docker build --tag document-support-rag-chatbot:ci .
+
+      - name: Start container
+        run: |
+          docker run --detach \
+            --name document-support-rag-chatbot-ci \
+            --publish 8000:8000 \
+            --health-interval 2s \
+            --health-timeout 2s \
+            --health-start-period 1s \
+            --health-retries 10 \
+            document-support-rag-chatbot:ci
+
+      - name: Smoke test container
+        run: |
+          for attempt in {1..30}; do
+            health_status="$(docker inspect --format '{{.State.Health.Status}}' document-support-rag-chatbot-ci)"
+            if [ "$health_status" = "healthy" ]; then
+              curl --fail --silent http://127.0.0.1:8000/health | grep --fixed-strings '"status":"ok"'
+              curl --fail --silent http://127.0.0.1:8000/ | grep --fixed-strings '<title>Document Support Chat</title>'
+              exit 0
+            fi
+
+            if [ "$(docker inspect --format '{{.State.Status}}' document-support-rag-chatbot-ci)" = "exited" ]; then
+              break
+            fi
+            sleep 2
+          done
+
+          docker logs document-support-rag-chatbot-ci
+          exit 1
+
+      - name: Remove container
+        if: always()
+        run: docker rm --force document-support-rag-chatbot-ci || true

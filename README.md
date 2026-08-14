@@ -1,5 +1,7 @@
 # Document Support RAG Chatbot
 
+[![CI](https://github.com/sasi433/document-support-rag-chatbot/actions/workflows/ci.yml/badge.svg)](https://github.com/sasi433/document-support-rag-chatbot/actions/workflows/ci.yml)
+
 A portfolio-scale retrieval-augmented generation (RAG) application for asking questions about support documents. The project accepts text, Markdown, and PDF files, indexes their content in a persistent vector store, and generates answers grounded in retrieved document chunks.
 
 The application includes a FastAPI backend, a lightweight browser interface, structured source references, automated tests, linting, and Docker support.
@@ -25,6 +27,19 @@ The application includes a FastAPI backend, a lightweight browser interface, str
 ```text
 Document -> Extract text -> Create chunks -> Generate embeddings -> ChromaDB
 Question + recent history -> Retrieve chunks -> Generate answer -> Show sources
+```
+
+```mermaid
+flowchart LR
+    Browser[Browser interface] --> API[FastAPI API]
+    API --> Ingestion[Document ingestion]
+    Ingestion --> Embeddings[OpenAI embeddings]
+    Embeddings --> Chroma[(ChromaDB)]
+    API --> Retrieval[Scoped semantic retrieval]
+    Retrieval --> Chroma
+    Retrieval --> Filter[Distance threshold]
+    Filter --> Answers[Grounded answer generation]
+    Answers --> Browser
 ```
 
 For each question, the application retrieves up to three relevant chunks. Recent conversation history can clarify follow-up intent, but the answer model is instructed to use document context as its only factual evidence. Chunks whose vector distance exceeds `MAX_RETRIEVAL_DISTANCE` are discarded before answer generation. If no relevant chunks remain, the fallback is returned without calling the answer model.
@@ -269,10 +284,16 @@ Build and run the application directly:
 
 ```powershell
 docker build -t document-support-rag-chatbot .
-docker run --rm -p 8000:8000 --env-file .env document-support-rag-chatbot
+docker run --rm --name document-support-rag-chatbot -p 8000:8000 --env-file .env document-support-rag-chatbot
 ```
 
 Data created by this command is removed with the container.
+
+The image includes a health check. For a running container named `document-support-rag-chatbot`, inspect it with:
+
+```powershell
+docker inspect --format='{{.State.Health.Status}}' document-support-rag-chatbot
+```
 
 ### Docker Compose
 
@@ -304,8 +325,20 @@ Run Ruff:
 python -m ruff check .
 ```
 
-Both commands should pass before committing changes.
+Both commands should pass before committing changes. GitHub Actions repeats them on every push and pull request to `main`, then independently builds the Docker image and smoke-tests the health endpoint and browser interface.
+
+## Release readiness
+
+The repository is a portfolio-ready release candidate when all of the following are true:
+
+- The full Pytest and Ruff checks pass locally and in GitHub Actions.
+- The Docker image builds and its container smoke tests pass.
+- The working tree is clean and synchronized with `origin/main`.
+- `.env`, uploaded files, and generated ChromaDB data remain untracked.
+- The README demo flow works with the fictional sample documents.
+
+At that point the project is suitable for a CV, portfolio website, GitHub profile, and freelance-platform project listing. A version tag such as `v1.0.0` can be added separately after the release commit is verified.
 
 ## Project scope
 
-This repository is a local, single-user portfolio demonstration. It intentionally does not include authentication, multi-user document isolation, persistent conversation storage, background processing, or production deployment infrastructure.
+This repository is a local, single-user, production-minded portfolio demonstration. It intentionally does not include authentication, multi-user document isolation, persistent conversation storage, background processing, rate limiting, malware scanning, monitoring, backups, or public production deployment infrastructure.
