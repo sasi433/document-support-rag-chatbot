@@ -39,6 +39,20 @@ jobs:
       - name: Run Ruff
         run: python -m ruff check .
 
+  kubernetes:
+    name: Validate Kubernetes manifests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Validate manifests
+        uses: docker://ghcr.io/yannh/kubeconform:v0.7.0
+        with:
+          args: -strict -summary k8s
+
   container:
     name: Docker build and smoke test
     runs-on: ubuntu-latest

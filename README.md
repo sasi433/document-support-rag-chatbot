@@ -4,7 +4,7 @@
 
 A portfolio-scale retrieval-augmented generation (RAG) application for asking questions about support documents. The project accepts text, Markdown, and PDF files, indexes their content in a persistent vector store, and generates answers grounded in retrieved document chunks.
 
-The application includes a FastAPI backend, a lightweight browser interface, structured source references, automated tests, linting, and Docker support.
+The application includes a FastAPI backend, a lightweight browser interface, structured source references, automated tests, linting, and Docker and Kubernetes deployment support.
 
 ## Features
 
@@ -20,7 +20,7 @@ The application includes a FastAPI backend, a lightweight browser interface, str
 - Limit a question to one indexed document or search the full library.
 - Return filename, chunk index, and a short snippet for each source.
 - Use an explicit fallback when the documents do not contain an answer.
-- Run through the browser, REST API, Docker, or Docker Compose.
+- Run through the browser, REST API, Docker, Docker Compose, or Kubernetes.
 
 ## How it works
 
@@ -61,6 +61,7 @@ Fallback responses contain an empty `sources` list.
 - Vanilla HTML, CSS, and JavaScript
 - Pytest and Ruff
 - Docker and Docker Compose
+- Kubernetes
 
 ## Project structure
 
@@ -76,6 +77,7 @@ data/
 |-- uploads/      # Locally uploaded documents
 `-- chroma/       # Generated ChromaDB data
 docs/             # Demo questions and validation notes
+k8s/              # Kubernetes workload, service, configuration, and storage
 sample_docs/      # Fictional documents for demonstrations
 tests/            # Automated test suite and fixtures
 ```
@@ -311,6 +313,53 @@ docker compose down
 
 The application can start without `.env` for interface and health checks. Upload and chat operations still require `OPENAI_API_KEY`.
 
+## Kubernetes
+
+The `k8s/` directory provides a simple, single-instance deployment:
+
+| Manifest | Purpose |
+| --- | --- |
+| `configmap.yaml` | Supplies non-secret application settings and persistent data paths. |
+| `persistent-volume-claim.yaml` | Requests 2 GiB of `ReadWriteOnce` storage for uploaded documents and ChromaDB. |
+| `deployment.yaml` | Runs one application pod with resource limits, a restricted security context, persistent storage, and `/health` readiness and liveness probes. |
+| `service.yaml` | Exposes the pod inside the cluster on port 8000. |
+
+The deployment expects an image named `document-support-rag-chatbot:latest`. Build it and make it available to your cluster before applying the manifests. For a local cluster, build the image in the cluster's Docker environment or load it using the cluster tool, such as `minikube image load document-support-rag-chatbot:latest` or `kind load docker-image document-support-rag-chatbot:latest`. For another cluster, publish the image to a registry and update `spec.template.spec.containers[0].image` in `deployment.yaml`.
+
+Create the OpenAI secret directly in the target namespace. This command does not store the key in Git:
+
+```powershell
+kubectl create secret generic document-support-rag-chatbot-secrets `
+  --from-literal=OPENAI_API_KEY="<your-api-key>"
+```
+
+Review `configmap.yaml`, then deploy all resources:
+
+```powershell
+kubectl apply -f k8s/
+kubectl rollout status deployment/document-support-rag-chatbot
+kubectl get pods,service,persistentvolumeclaim `
+  -l app.kubernetes.io/name=document-support-rag-chatbot
+```
+
+The service is intentionally cluster-internal. Forward it locally and verify both the health endpoint and browser interface:
+
+```powershell
+kubectl port-forward service/document-support-rag-chatbot 8000:8000
+Invoke-RestMethod http://127.0.0.1:8000/health
+```
+
+Then open <http://127.0.0.1:8000/>. The PVC is mounted at `/app/data`, so both `/app/data/uploads` and `/app/data/chroma` survive pod replacement. The `Recreate` deployment strategy matches the single-writer local ChromaDB design.
+
+Remove the workload and configuration with:
+
+```powershell
+kubectl delete -f k8s/
+kubectl delete secret document-support-rag-chatbot-secrets
+```
+
+Deleting the PVC removes the Kubernetes storage claim and may permanently delete its data, depending on the cluster's storage-class reclaim policy. Back up any documents you need before removal.
+
 ## Tests and linting
 
 Run the automated test suite:
@@ -325,20 +374,21 @@ Run Ruff:
 python -m ruff check .
 ```
 
-Both commands should pass before committing changes. GitHub Actions repeats them on every push and pull request to `main`, then independently builds the Docker image and smoke-tests the health endpoint and browser interface.
+Both commands should pass before committing changes. GitHub Actions repeats them on every push and pull request to `main`, validates the Kubernetes manifests with Kubeconform, then independently builds the Docker image and smoke-tests the health endpoint and browser interface.
 
 ## Release readiness
 
-The repository is a portfolio-ready release candidate when all of the following are true:
+The v1 release is validated with all of the following checks:
 
 - The full Pytest and Ruff checks pass locally and in GitHub Actions.
 - The Docker image builds and its container smoke tests pass.
+- The Kubernetes manifests pass strict schema validation.
 - The working tree is clean and synchronized with `origin/main`.
 - `.env`, uploaded files, and generated ChromaDB data remain untracked.
 - The README demo flow works with the fictional sample documents.
 
-At that point the project is suitable for a CV, portfolio website, GitHub profile, and freelance-platform project listing. A version tag such as `v1.0.0` can be added separately after the release commit is verified.
+This completed v1 scope is suitable for a CV, portfolio website, GitHub profile, and freelance-platform project listing.
 
 ## Project scope
 
-This repository is a local, single-user, production-minded portfolio demonstration. It intentionally does not include authentication, multi-user document isolation, persistent conversation storage, background processing, rate limiting, malware scanning, monitoring, backups, or public production deployment infrastructure.
+This repository is a local, single-user, production-minded portfolio demonstration. Kubernetes support demonstrates portable single-instance deployment; it does not make the application a fully production-ready public SaaS system. The v1 scope intentionally excludes authentication, multi-user document isolation, persistent conversation storage, background processing, rate limiting, malware scanning, monitoring, backups, ingress, autoscaling, and managed cloud infrastructure.
