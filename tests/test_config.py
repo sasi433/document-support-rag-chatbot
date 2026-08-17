@@ -19,7 +19,7 @@ def test_max_upload_size_must_be_positive() -> None:
 def test_max_retrieval_distance_defaults_to_one() -> None:
     settings = Settings(_env_file=None)
 
-    assert settings.max_retrieval_distance == 1.0
+    assert settings.max_retrieval_distance == 1.4
 
 
 def test_max_retrieval_distance_cannot_be_negative() -> None:

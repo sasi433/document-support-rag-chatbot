@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     openai_embedding_model: str = "text-embedding-3-small"
     openai_chat_model: str = "gpt-5.6-terra"
-    max_retrieval_distance: float = Field(default=1.0, ge=0)
+    max_retrieval_distance: float = Field(default=1.4, ge=0)
     chroma_persist_dir: Path = Path("data/chroma")
     chroma_collection_name: str = "support_documents"
 
